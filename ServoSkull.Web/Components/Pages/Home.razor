@@ -1,7 +1,50 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ServoSkull</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="servo-skull-container">
+    <h1>ServoSkull.NET</h1>
+    <div class="interaction-area">
+        <div class="video-feed">
+            <!-- Video feed will go here -->
+        </div>
+        <div class="chat-log">
+            <!-- Chat history will go here -->
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
+<style>
+    .servo-skull-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .interaction-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .video-feed {
+        aspect-ratio: 16/9;
+        background-color: #1a1a1a;
+        border-radius: 8px;
+    }
+
+    .chat-log {
+        background-color: #1a1a1a;
+        border-radius: 8px;
+        padding: 1rem;
+        height: 100%;
+        min-height: 400px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #d4d4d4;
+        margin-bottom: 2rem;
+    }
+</style>
