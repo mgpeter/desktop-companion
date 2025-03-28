@@ -1,0 +1,115 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Solution Structure Rules
+globs: *.csproj,*.sln
+---
+# Solution Structure Rules
+
+Rules for maintaining the solution and project structure of the ServoSkull.NET application.
+
+<rule>
+name: solution_structure
+description: Enforces the solution and project organization standards
+filters:
+  - type: file_extension
+    pattern: "\\.(csproj|sln)$"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^(?!ServoSkull\\.[A-Za-z]+/ServoSkull\\.[A-Za-z]+\\.csproj$)"
+        message: "Project files must follow the ServoSkull.{ProjectName} naming convention and be in their own directory"
+      - pattern: "^(?!ServoSkull\\.sln$)"
+        message: "Solution file must be named ServoSkull.sln and placed in the root directory"
+
+  - type: suggest
+    message: |
+      Solution Structure Standards:
+
+      1. Root Structure:
+         ```
+         ServoSkull.NET/
+         ├── ServoSkull.sln
+         ├── ServoSkull.AppHost/       # Aspire host application
+         ├── ServoSkull.ServiceDefaults/ # Shared Aspire configuration
+         ├── ServoSkull.WebApp/        # Blazor Frontend
+         ├── ServoSkull.WebApi/        # Backend API
+         ├── ServoSkull.Core/          # Core business logic
+         ├── ServoSkull.Data/          # Data access layer
+         ├── ServoSkull.Dto/           # Data transfer objects
+         └── ServoSkull.{ProjectName}/ # Additional projects following convention
+         └── ServoSkull.{ProjectName}.Tests/ # Additional projects following convention
+         ```
+
+      2. Project Naming Convention:
+         - Must start with "ServoSkull."
+         - Use PascalCase for project names
+         - Project directory must match project name
+         - Each project in its own directory
+
+      3. Common Project Types:
+         - *.AppHost - Aspire orchestration
+         - *.ServiceDefaults - Shared Aspire configuration
+         - *.WebApp/WebApi - Frontend/Backend
+         - *.Core/Data/Dto - Business/Data layers
+         - *.Services - Shared services
+         - *.Tests - Test projects
+         - *.Contracts - Service contracts/interfaces
+
+      4. Testing Standards:
+         - Use xUnit for unit testing
+         - Use Shouldly for assertions
+         - Use NSubstitute for mocking
+         - Test project naming: {ProjectName}.Tests
+         - Test class naming: {ClassName}Tests
+         - Test method naming: {MethodName}_Scenario_ExpectedResult
+         - Place tests in matching folder structure
+         - Example:
+           ```
+           ServoSkull.Core/
+           ├── Services/
+           │   └── MyService.cs
+           └── Tests/
+               └── Services/
+                   └── MyServiceTests.cs
+           ```
+
+      5. Project Dependencies:
+         - AppHost → All projects (for orchestration)
+         - WebApp → Dto, Core, Contracts
+         - WebApi → Dto, Core, Data, Contracts
+         - Core → Dto
+         - Data → Core, Dto
+         - Services → Core, Dto, Contracts
+         - *.Tests → {ProjectName} (test project references source project)
+
+examples:
+  - input: |
+      # Bad: Incorrect project structure/naming
+      src/MyProject.csproj
+      ServoskullWebApi/Servoskull.WebApi.csproj
+      ServoSkull.WebApi.csproj
+      MyTests/MyTests.csproj
+
+      # Good: Correct project structure/naming
+      ServoSkull.WebApi/ServoSkull.WebApi.csproj
+      ServoSkull.Services/ServoSkull.Services.csproj
+      ServoSkull.AppHost/ServoSkull.AppHost.csproj
+      ServoSkull.Core.Tests/ServoSkull.Core.Tests.csproj
+    output: "Correctly organized solution structure"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

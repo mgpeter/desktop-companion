@@ -1,0 +1,108 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Frontend UI Rules
+globs: *.razor,*.css,*.js
+---
+# Frontend UI Rules
+
+Rules for maintaining Blazor frontend standards in ServoSkull.NET.
+
+<rule>
+name: frontend_ui
+description: Enforces Blazor component and UI standards
+filters:
+  - type: file_extension
+    pattern: "\\.(razor|css|js)$"
+  - type: content
+    pattern: "@page|@component|@inject|@code"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "@inject \\w+ \\w+"
+        message: "Use dependency injection through Program.cs"
+      - pattern: "StateHasChanged\\(\\)"
+        message: "Use proper state management instead of direct calls"
+      - pattern: "JSRuntime\\.InvokeAsync"
+        message: "Use IJSRuntime through proper service abstraction"
+
+  - type: suggest
+    message: |
+      Frontend UI Standards:
+
+      1. Component Organization:
+         ```
+         ServoSkull.WebApp/
+         ├── Components/
+         │   ├── Layout/              # Layout components
+         │   ├── Shared/              # Reusable components
+         │   └── Features/            # Feature-specific components
+         ├── Pages/                   # Page components
+         └── Services/                # Frontend services
+         ```
+
+      2. Component Standards:
+         - Use partial classes for code-behind
+         - Implement IDisposable when needed
+         - Use proper lifecycle methods
+         - Follow single responsibility
+         - Use proper parameter binding
+
+      3. State Management:
+         - Use proper state containers
+         - Implement proper event handling
+         - Use cascading parameters when appropriate
+         - Handle component disposal
+         - Manage async operations properly
+
+      4. UI/UX Guidelines:
+         - Follow Material Design principles
+         - Implement responsive design
+         - Use proper loading states
+         - Handle errors gracefully
+         - Provide user feedback
+
+      5. Performance:
+         - Lazy load components
+         - Use proper caching
+         - Optimize render cycles
+         - Handle large datasets
+         - Implement proper error boundaries
+
+examples:
+  - input: |
+      // Bad: Direct state management
+      @code {
+          private void UpdateState() {
+              StateHasChanged();
+          }
+      }
+
+      // Good: Using proper state management
+      @code {
+          private async Task UpdateStateAsync() {
+              await _stateContainer.UpdateStateAsync();
+          }
+      }
+    output: "Correctly implemented state management"
+
+  - input: |
+      // Bad: Direct JS interop
+      @inject IJSRuntime JSRuntime
+      await JSRuntime.InvokeAsync("myFunction");
+
+      // Good: Using service abstraction
+      @inject IWebcamService WebcamService
+      await WebcamService.InitializeCameraAsync();
+    output: "Correctly implemented service abstraction"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

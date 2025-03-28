@@ -1,0 +1,107 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Image Handling Rules
+globs: *.cs,*.razor,*.js
+---
+# Image Handling Rules
+
+Rules for maintaining image capture and analysis standards in ServoSkull.NET.
+
+<rule>
+name: image_handling
+description: Enforces image capture, processing, and analysis standards
+filters:
+  - type: file_extension
+    pattern: "\\.(cs|razor|js)$"
+  - type: content
+    pattern: "webcam|canvas|ImageAnalysis|ML\\.NET|vision"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "getUserMedia\\(\\{video: true\\}\\)"
+        message: "Use WebcamService for camera access"
+      - pattern: "canvas\\.getContext\\(\"2d\"\\)"
+        message: "Use FrameCaptureService for frame capture"
+      - pattern: "new ImageAnalyzer\\(\\)"
+        message: "Use dependency injection for ImageAnalysisService"
+
+  - type: suggest
+    message: |
+      Image Handling Standards:
+
+      1. Frontend Capture:
+         ```
+         Frontend/
+         ├── Services/
+         │   ├── WebcamService.cs      # Camera access
+         │   └── FrameCaptureService.cs # Frame capture
+         └── Components/
+             └── WebcamCapture.razor   # Camera component
+         ```
+
+      2. Capture Standards:
+         - Resolution: 720p minimum
+         - Format: JPEG/PNG
+         - Frame rate: 30fps
+         - Burst capture: 3-5 frames
+         - Quality: 80% JPEG
+
+      3. Backend Processing:
+         ```
+         Backend/
+         ├── Services/
+         │   ├── ImageAnalysisService.cs  # ML.NET analysis
+         │   └── VisionService.cs         # External API
+         └── Models/
+             └── ImageAnalysis.cs         # Analysis results
+         ```
+
+      4. Analysis Requirements:
+         - Object detection
+         - Scene understanding
+         - Text recognition (OCR)
+         - Face detection
+         - Context extraction
+
+      5. Performance Guidelines:
+         - Max image size: 2MB
+         - Processing timeout: 5s
+         - Cache analysis results
+         - Batch processing when possible
+         - Error handling with fallbacks
+
+examples:
+  - input: |
+      // Bad: Direct camera access
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+      // Good: Using service
+      await _webcamService.InitializeCamera();
+      await _frameCaptureService.CaptureFrame();
+    output: "Correctly implemented image capture"
+
+  - input: |
+      // Bad: Direct analysis
+      var analyzer = new ImageAnalyzer();
+      var results = analyzer.Analyze(image);
+
+      // Good: Using service with DI
+      var results = await _imageAnalysisService.AnalyzeImage(
+          new ImageAnalysisRequest 
+          { 
+              Image = image,
+              AnalysisTypes = AnalysisType.All
+          });
+    output: "Correctly implemented image analysis"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

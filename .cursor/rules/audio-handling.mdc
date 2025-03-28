@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Audio Handling Rules
+globs: *.cs,*.js,*.razor
+---
+# Audio Handling Rules
+
+Rules for maintaining audio handling standards in the ServoSkull.NET application.
+
+<rule>
+name: audio_handling
+description: Enforces audio capture, processing, and playback standards
+filters:
+  - type: file_extension
+    pattern: "\\.(cs|js|razor)$"
+  - type: content
+    pattern: "MediaRecorder|AudioContext|audio|Whisper|TTS"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "new AudioContext\\(\\)"
+        message: "Use the shared AudioContext instance from AudioService"
+      - pattern: "MediaRecorder\\.start\\(\\)"
+        message: "Use VADService for audio recording"
+      - pattern: "audio/mp3"
+        message: "Use audio/webm for recording, MP3 only for playback"
+
+  - type: suggest
+    message: |
+      Audio Handling Standards:
+
+      1. Frontend Audio Capture:
+         ```
+         Frontend/
+         ├── Services/
+         │   ├── VADService.cs         # Voice Activity Detection
+         │   └── AudioService.cs       # Audio playback
+         └── Components/
+             └── AudioCapture.razor    # Audio capture component
+         ```
+
+      2. Recording Standards:
+         - Use VAD for voice detection
+         - Format: audio/webm
+         - Silence threshold: 800ms
+         - Debounce: 1s between recordings
+
+      3. Backend Processing:
+         ```
+         Backend/
+         ├── Services/
+         │   ├── SpeechToTextService.cs  # OpenAI Whisper
+         │   └── TextToSpeechService.cs  # OpenAI TTS
+         └── Models/
+             └── AudioProcessing.cs      # Audio processing models
+         ```
+
+      4. OpenAI Integration:
+         - Whisper API for transcription
+         - TTS API for response generation
+         - Voice: onyx (or custom)
+         - Output format: MP3
+         - British, sarcastic tone
+
+      5. Error Handling:
+         - Handle device permissions
+         - Manage API rate limits
+         - Implement retry logic
+         - Log audio processing errors
+
+examples:
+  - input: |
+      // Bad: Direct audio handling
+      const recorder = new MediaRecorder(stream);
+      recorder.start();
+
+      // Good: Using services
+      await _vadService.StartRecording();
+      await _audioService.PlayResponse(audioUrl);
+    output: "Correctly implemented audio handling"
+
+  - input: |
+      // Bad: Incorrect audio format
+      var audio = new AudioFormat("audio/mp3");
+
+      // Good: Correct audio format
+      var audio = new AudioFormat("audio/webm");
+    output: "Correctly specified audio format"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

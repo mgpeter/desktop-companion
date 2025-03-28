@@ -1,0 +1,110 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Response Generation Rules
+globs: *.cs,*.razor
+---
+# Response Generation Rules
+
+Rules for maintaining response generation standards and servo-skull personality in ServoSkull.NET.
+
+<rule>
+name: response_generation
+description: Enforces response generation standards and personality guidelines
+filters:
+  - type: file_extension
+    pattern: "\\.(cs|razor)$"
+  - type: content
+    pattern: "ResponseService|GenerateResponse|TTS|Personality"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "new ResponseGenerator\\(\\)"
+        message: "Use dependency injection for ResponseService"
+      - pattern: "GenerateResponse\\([^,]+(\\))"
+        message: "Response generation must include context (audio transcript, image analysis)"
+      - pattern: "\\btts\\.generate\\("
+        message: "Use TextToSpeechService for voice generation with proper personality settings"
+
+  - type: suggest
+    message: |
+      Response Generation Standards:
+
+      1. Service Organization:
+         ```
+         ServoSkull.Core/
+         ├── Services/
+         │   ├── ResponseService.cs        # Core response logic
+         │   ├── PersonalityService.cs     # Personality management
+         │   └── ContextService.cs         # Context aggregation
+         └── Models/
+             ├── ResponseContext.cs        # Input context model
+             └── ServoResponse.cs          # Response model
+         ```
+
+      2. Response Context:
+         - Audio transcript (required)
+         - Image analysis results (required)
+         - Previous interactions (optional)
+         - Environmental context (optional)
+         - User preferences (optional)
+
+      3. Servo-Skull Personality:
+         - Tone: Sarcastic, theatrical, dramatic
+         - Style: British-influenced
+         - Character: 40k servo-skull assistant
+         - Examples:
+           ```
+           // Good responses:
+           "Another sigh. Another meeting. Another cry for the sweet release of bolter fire."
+           "Your screen is as empty as your inbox after a productivity sprint."
+           "By the Omnissiah's grace, shall we attempt to decipher your cryptic utterances?"
+           ```
+
+      4. Response Structure:
+         - Max length: 2-3 sentences
+         - Include situational awareness
+         - Reference visual context when relevant
+         - Maintain consistent personality
+         - Format for TTS compatibility
+
+      5. Integration Points:
+         - OpenAI completion API
+         - Custom prompt templates
+         - Context management
+         - Response caching
+         - Error handling with fallbacks
+
+examples:
+  - input: |
+      // Bad: Direct response generation
+      var response = new ResponseGenerator().Generate(text);
+
+      // Good: Proper context and DI
+      var response = await _responseService.GenerateResponse(
+          new ResponseContext 
+          { 
+              Transcript = transcript,
+              ImageAnalysis = imageResults,
+              PreviousContext = context
+          });
+    output: "Correctly implemented response generation"
+
+  - input: |
+      // Bad: Generic response
+      return "I'll help you with that.";
+
+      // Good: Personality-driven response
+      return "By the Machine God's circuits, I shall illuminate your path through this digital labyrinth.";
+    output: "Correctly styled response"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 
