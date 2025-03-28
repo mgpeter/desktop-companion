@@ -1,14 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Solution Structure Rules
 globs: *.csproj,*.sln
 ---

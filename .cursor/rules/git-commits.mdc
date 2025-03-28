@@ -1,11 +1,6 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Git Commit Message Rules
-globs: .git/COMMIT_EDITMSG
+alwaysApply: true
 ---
 # Git Commit Message Rules
 

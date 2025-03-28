@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Audio Handling Rules
 globs: *.cs,*.js,*.razor
 ---

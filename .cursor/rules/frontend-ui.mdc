@@ -1,11 +1,6 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Frontend UI Rules
-globs: *.razor,*.css,*.js
+globs: ServoSkull.Web/**/*.{razor,css,js,cs}
 ---
 # Frontend UI Rules
 
@@ -13,12 +8,12 @@ Rules for maintaining Blazor frontend standards in ServoSkull.NET.
 
 <rule>
 name: frontend_ui
-description: Enforces Blazor component and UI standards
+description: Enforces Blazor component and UI standards for .NET 9
 filters:
   - type: file_extension
     pattern: "\\.(razor|css|js)$"
   - type: content
-    pattern: "@page|@component|@inject|@code"
+    pattern: "@page|@component|@inject|@code|@rendermode"
   - type: event
     pattern: "file_create|file_modify"
 
@@ -26,17 +21,29 @@ actions:
   - type: reject
     conditions:
       - pattern: "@inject \\w+ \\w+"
-        message: "Use dependency injection through Program.cs"
+        message: "Use constructor injection for components in .NET 9"
       - pattern: "StateHasChanged\\(\\)"
         message: "Use proper state management instead of direct calls"
       - pattern: "JSRuntime\\.InvokeAsync"
         message: "Use IJSRuntime through proper service abstraction"
+      - pattern: "@page.*[^@rendermode]"
+        message: "Specify render mode for page components"
 
   - type: suggest
     message: |
-      Frontend UI Standards:
+      Frontend UI Standards for .NET 9 Blazor:
 
-      1. Component Organization:
+      1. Render Modes:
+         - Use @rendermode directive for all pages
+         - Options: InteractiveServer, InteractiveWebAssembly, InteractiveAuto, or Static
+         - Default to InteractiveAuto unless specific needs
+         - Example:
+           ```razor
+           @page "/counter"
+           @rendermode InteractiveAuto
+           ```
+
+      2. Component Organization:
          ```
          ServoSkull.WebApp/
          ├── Components/
@@ -47,60 +54,79 @@ actions:
          └── Services/                # Frontend services
          ```
 
-      2. Component Standards:
-         - Use partial classes for code-behind
+      3. Component Standards:
+         - Use constructor injection (new in .NET 9)
          - Implement IDisposable when needed
          - Use proper lifecycle methods
          - Follow single responsibility
          - Use proper parameter binding
+         - Check RenderMode with @RenderInfo when needed
 
-      3. State Management:
+      4. State Management:
          - Use proper state containers
          - Implement proper event handling
          - Use cascading parameters when appropriate
          - Handle component disposal
-         - Manage async operations properly
-
-      4. UI/UX Guidelines:
-         - Follow Material Design principles
-         - Implement responsive design
-         - Use proper loading states
-         - Handle errors gracefully
-         - Provide user feedback
+         - Use new state persistence APIs for enhanced navigation
+         - Properly handle prerender to interactive state
 
       5. Performance:
-         - Lazy load components
-         - Use proper caching
-         - Optimize render cycles
-         - Handle large datasets
+         - Use static rendering for non-interactive content
+         - Leverage auto render mode for optimal performance
+         - Use proper caching strategies
          - Implement proper error boundaries
+         - Use WebSocket compression for Server mode
+         - Leverage static asset optimization
+
+      6. Authentication:
+         - Use Microsoft Identity Platform for auth
+         - Force static rendering for auth pages that need cookies
+         - Handle auth state properly across render modes
 
 examples:
   - input: |
-      // Bad: Direct state management
+      // Bad: No render mode specified
+      @page "/counter"
+      
+      // Good: Using render mode
+      @page "/counter"
+      @rendermode InteractiveAuto
+      
+      public class Counter
+      {
+          private readonly ILogger<Counter> _logger;
+          
+          // Good: Constructor injection
+          public Counter(ILogger<Counter> logger)
+          {
+              _logger = logger;
+          }
+      }
+    output: "Correctly implemented .NET 9 component"
+
+  - input: |
+      // Bad: Old state management
       @code {
           private void UpdateState() {
               StateHasChanged();
           }
       }
 
-      // Good: Using proper state management
+      // Good: Modern state management
       @code {
-          private async Task UpdateStateAsync() {
-              await _stateContainer.UpdateStateAsync();
+          private readonly IState<CounterState> _state;
+          
+          public Counter(IState<CounterState> state)
+          {
+              _state = state;
+          }
+          
+          private async Task UpdateStateAsync()
+          {
+              await _state.UpdateAsync(s => s with { Count = s.Count + 1 });
           }
       }
     output: "Correctly implemented state management"
-
-  - input: |
-      // Bad: Direct JS interop
-      @inject IJSRuntime JSRuntime
-      await JSRuntime.InvokeAsync("myFunction");
-
-      // Good: Using service abstraction
-      @inject IWebcamService WebcamService
-      await WebcamService.InitializeCameraAsync();
-    output: "Correctly implemented service abstraction"
 
 metadata:
   priority: high

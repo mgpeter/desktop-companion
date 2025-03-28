@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Image Handling Rules
 globs: *.cs,*.razor,*.js
 ---

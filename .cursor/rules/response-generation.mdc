@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: Response Generation Rules
 globs: *.cs,*.razor
 ---

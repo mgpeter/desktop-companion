@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: API Integration Rules
 globs: *.cs,*.json
 ---
