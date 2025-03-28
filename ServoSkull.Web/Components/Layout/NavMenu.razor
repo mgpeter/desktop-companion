@@ -1,17 +1,33 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ServoSkull.NET</a>
+﻿@code {
+    private bool isExpanded = true;
+
+    private void ToggleNavMenu()
+    {
+        isExpanded = !isExpanded;
+    }
+}
+
+<div class="flex flex-col h-full">
+    <div class="p-4 border-b border-gray-700 bg-gray-800/50">
+        <a href="" class="text-xl font-bold text-gray-100 hover:text-white transition-colors">ServoSkull.NET</a>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <button 
+        class="lg:hidden p-4 text-gray-300 hover:bg-gray-700 hover:text-white flex items-center transition-colors"
+        @onclick="ToggleNavMenu">
+        <span class="bi bi-list mr-2"></span>
+        Menu
+    </button>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-    </nav>
+    <div class="@(isExpanded ? "block" : "hidden lg:block")">
+        <nav class="flex flex-col py-4">
+            <div class="px-4 space-y-2">
+                <NavLink href="" Match="NavLinkMatch.All" 
+                    class="flex items-center text-gray-300 hover:bg-gray-700 hover:text-white px-4 py-2 rounded-lg transition-colors">
+                    <span class="bi bi-house-door-fill mr-2" aria-hidden="true"></span>
+                    Home
+                </NavLink>
+            </div>
+        </nav>
+    </div>
 </div>

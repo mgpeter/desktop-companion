@@ -36,6 +36,7 @@ app.UseOutputCache();
 
 app.MapStaticAssets();
 
+// Configure global interactive server rendering
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

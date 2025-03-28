@@ -1,39 +1,50 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+@import "tailwindcss";
+
+@theme {
+    /* Dark theme colors */
+    --color-background: oklch(0.1 0 0);
+    --color-foreground: oklch(0.9 0 0);
+    --color-accent: oklch(0.7 0.3 270);
+    --color-scrollbar-track: oklch(0.2 0 0);
+    --color-scrollbar-thumb: oklch(0.3 0 0);
+    --color-scrollbar-thumb-hover: oklch(0.4 0 0);
 }
 
-a, .btn-link {
-    color: #006bb7;
+/* Global styles */
+:root {
+    color-scheme: dark;
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+/* Custom styles for Blazor */
+#blazor-error-ui {
+    display: none;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+    width: 0.5rem;
 }
 
-.content {
-    padding-top: 1.1rem;
+::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+}
+
+/* Smooth transitions */
+.transition-all {
+    transition: all 200ms ease-in-out;
 }
 
 h1:focus {
     outline: none;
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid #e51370;
-}
-
-.validation-message {
-    color: #e51370;
 }
 
 .blazor-error-boundary {
@@ -42,9 +53,9 @@ h1:focus {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
     color: var(--bs-secondary-color);

@@ -2,49 +2,24 @@
 
 <PageTitle>ServoSkull</PageTitle>
 
-<div class="servo-skull-container">
-    <h1>ServoSkull.NET</h1>
-    <div class="interaction-area">
-        <div class="video-feed">
+<div class="container mx-auto px-8 py-6 max-w-7xl">
+    <h1 class="text-4xl font-bold text-gray-100 text-center mb-8">
+        ServoSkull.NET
+    </h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-lg aspect-video">
             <!-- Video feed will go here -->
+            <div class="flex items-center justify-center h-full text-gray-400">
+                <span class="text-lg">Video feed initializing...</span>
+            </div>
         </div>
-        <div class="chat-log">
+        
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-6 min-h-[400px]">
             <!-- Chat history will go here -->
+            <div class="flex items-center justify-center h-full text-gray-400">
+                <span class="text-lg">Chat history loading...</span>
+            </div>
         </div>
     </div>
 </div>
-
-<style>
-    .servo-skull-container {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .interaction-area {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        margin-top: 2rem;
-    }
-
-    .video-feed {
-        aspect-ratio: 16/9;
-        background-color: #1a1a1a;
-        border-radius: 8px;
-    }
-
-    .chat-log {
-        background-color: #1a1a1a;
-        border-radius: 8px;
-        padding: 1rem;
-        height: 100%;
-        min-height: 400px;
-    }
-
-    h1 {
-        text-align: center;
-        color: #d4d4d4;
-        margin-bottom: 2rem;
-    }
-</style>

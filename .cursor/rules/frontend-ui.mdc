@@ -13,7 +13,7 @@ filters:
   - type: file_extension
     pattern: "\\.(razor|css|js)$"
   - type: content
-    pattern: "@page|@component|@inject|@code|@rendermode"
+    pattern: "@page|@component|@inject|@code"
   - type: event
     pattern: "file_create|file_modify"
 
@@ -26,21 +26,22 @@ actions:
         message: "Use proper state management instead of direct calls"
       - pattern: "JSRuntime\\.InvokeAsync"
         message: "Use IJSRuntime through proper service abstraction"
-      - pattern: "@page.*[^@rendermode]"
-        message: "Specify render mode for page components"
+      - pattern: "@rendermode"
+        message: "Do not use component-level render modes. Rendering strategy is configured globally in Program.cs"
 
   - type: suggest
     message: |
       Frontend UI Standards for .NET 9 Blazor:
 
-      1. Render Modes:
-         - Use @rendermode directive for all pages
-         - Options: InteractiveServer, InteractiveWebAssembly, InteractiveAuto, or Static
-         - Default to InteractiveAuto unless specific needs
+      1. Rendering Strategy:
+         - Global interactive server rendering configured in Program.cs
+         - No component-level @rendermode directives
+         - Components inherit global rendering behavior
          - Example:
            ```razor
            @page "/counter"
-           @rendermode InteractiveAuto
+           
+           <h1>Counter</h1>
            ```
 
       2. Component Organization:
@@ -60,7 +61,6 @@ actions:
          - Use proper lifecycle methods
          - Follow single responsibility
          - Use proper parameter binding
-         - Check RenderMode with @RenderInfo when needed
 
       4. State Management:
          - Use proper state containers
@@ -71,8 +71,7 @@ actions:
          - Properly handle prerender to interactive state
 
       5. Performance:
-         - Use static rendering for non-interactive content
-         - Leverage auto render mode for optimal performance
+         - Leverage global rendering configuration
          - Use proper caching strategies
          - Implement proper error boundaries
          - Use WebSocket compression for Server mode
@@ -80,17 +79,17 @@ actions:
 
       6. Authentication:
          - Use Microsoft Identity Platform for auth
-         - Force static rendering for auth pages that need cookies
-         - Handle auth state properly across render modes
+         - Handle auth state properly with global rendering
+         - Implement proper auth state persistence
 
 examples:
   - input: |
-      // Bad: No render mode specified
+      // Bad: Using component-level render mode
       @page "/counter"
+      @rendermode InteractiveServer
       
-      // Good: Using render mode
+      // Good: Using global render mode
       @page "/counter"
-      @rendermode InteractiveAuto
       
       public class Counter
       {
@@ -111,22 +110,7 @@ examples:
               StateHasChanged();
           }
       }
-
-      // Good: Modern state management
-      @code {
-          private readonly IState<CounterState> _state;
-          
-          public Counter(IState<CounterState> state)
-          {
-              _state = state;
-          }
-          
-          private async Task UpdateStateAsync()
-          {
-              await _state.UpdateAsync(s => s with { Count = s.Count + 1 });
-          }
-      }
-    output: "Correctly implemented state management"
+    output: "Incorrect state management"
 
 metadata:
   priority: high

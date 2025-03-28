@@ -1,19 +1,23 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
+<div class="min-h-screen bg-gray-900 text-gray-100 flex">
+    <div class="w-64 bg-gray-800 border-r border-gray-700">
         <NavMenu />
     </div>
 
-    <main>
-        <article class="content px-4">
+    <main class="flex-1">
+        <div class="p-6">
             @Body
-        </article>
+        </div>
     </main>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
+<div id="blazor-error-ui" class="fixed bottom-0 w-full bg-red-900 text-white p-4 hidden">
+    <div class="container mx-auto flex justify-between items-center">
+        <p>An unhandled error has occurred.</p>
+        <div class="flex gap-4">
+            <a href="" class="text-white hover:text-red-200 underline">Reload</a>
+            <button class="text-white hover:text-red-200" onclick="this.parentElement.parentElement.parentElement.style.display='none'">🗙</button>
+        </div>
+    </div>
 </div>

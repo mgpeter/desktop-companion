@@ -1,0 +1,32 @@
+{
+  "name": "servoskull.web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.0.17",
+    "autoprefixer": "^10.4.21",
+    "browserslist": "^4.24.4",
+    "caniuse-lite": "^1.0.30001707",
+    "electron-to-chromium": "^1.5.128",
+    "escalade": "^3.2.0",
+    "fraction.js": "^4.3.7",
+    "nanoid": "^3.3.11",
+    "node-releases": "^2.0.19",
+    "normalize-range": "^0.1.2",
+    "picocolors": "^1.1.1",
+    "postcss": "^8.5.3",
+    "postcss-value-parser": "^4.2.0",
+    "source-map-js": "^1.2.1",
+    "tailwindcss": "^4.0.17",
+    "update-browserslist-db": "^1.1.3"
+  },
+  "scripts": {
+    "css:build": "tailwindcss -i ./wwwroot/app.css -o ./wwwroot/app.generated.css --minify",
+    "css:watch": "tailwindcss -i ./wwwroot/app.css -o ./wwwroot/app.generated.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

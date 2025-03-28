@@ -3,26 +3,38 @@
 
 <PageTitle>Error</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="container mx-auto px-8 py-12 max-w-4xl">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-8">
+        <h1 class="text-4xl font-bold text-red-400 mb-4">Error</h1>
+        <h2 class="text-2xl text-red-400 mb-8">An error occurred while processing your request.</h2>
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@requestId</code>
-    </p>
-}
+        @if (ShowRequestId)
+        {
+            <div class="bg-gray-900/50 rounded p-4 mb-8 border border-gray-700">
+                <p class="font-mono">
+                    <strong>Request ID:</strong> <code class="bg-gray-700 px-2 py-1 rounded">@requestId</code>
+                </p>
+            </div>
+        }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <div class="border-t border-gray-700 pt-8">
+            <h3 class="text-xl font-semibold mb-4 text-gray-100">Development Mode</h3>
+            <div class="space-y-4 text-gray-300">
+                <p>
+                    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+                </p>
+                <div class="bg-yellow-900/20 border-l-4 border-yellow-600 p-4 rounded">
+                    <p class="font-medium text-yellow-200">The Development environment shouldn't be enabled for deployed applications.</p>
+                    <p class="mt-2 text-yellow-100/80">
+                        It can result in displaying sensitive information from exceptions to end users.
+                        For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
+                        and restarting the app.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code{
     [CascadingParameter]
