@@ -1,0 +1,168 @@
+---
+description: Configuration and Secrets Management Rules
+globs: *.json,*.cs
+---
+# Configuration and Secrets Management Rules
+
+Rules for maintaining configuration and secrets management standards in ServoSkull.NET.
+
+<rule>
+name: configuration
+description: Enforces configuration and secrets management standards
+filters:
+  - type: file_extension
+    pattern: "\\.(json|cs)$"
+  - type: content
+    pattern: "appsettings|IConfiguration|Options|UserSecrets|KeyVault"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "apiKey = \"[^\"]+\""
+        message: "Never hardcode API keys or secrets"
+      - pattern: "appsettings\\.json.*\"ApiKey\""
+        message: "Never store secrets in appsettings.json"
+      - pattern: "IConfiguration\\[\\\"[^\"]+\\\"\\]"
+        message: "Use strongly-typed configuration with Options pattern"
+      - pattern: "new ConfigurationBuilder\\(\\)"
+        message: "Use dependency injection for configuration"
+
+  - type: suggest
+    message: |
+      Configuration and Secrets Standards:
+
+      1. Configuration Structure:
+         ```
+         ServoSkull.Core/
+         ├── Configuration/
+         │   ├── OpenAIOptions.cs
+         │   └── VisionOptions.cs
+         └── DependencyInjection.cs
+
+         ServoSkull.WebApi/
+         ├── appsettings.json
+         ├── appsettings.Development.json
+         └── appsettings.Example.json
+         ```
+
+      2. Options Pattern:
+         ```csharp
+         // Core/Configuration/OpenAIOptions.cs
+         public class OpenAIOptions
+         {
+             public string ApiKey { get; set; }
+             public string Model { get; set; }
+             public int MaxTokens { get; set; }
+         }
+
+         // Core/DependencyInjection.cs
+         public static IServiceCollection AddCoreServices(
+             this IServiceCollection services,
+             IConfiguration configuration)
+         {
+             services.Configure<OpenAIOptions>(
+                 configuration.GetSection("OpenAI"));
+             
+             services.AddScoped<IOpenAIService, OpenAIService>();
+             return services;
+         }
+
+         // Service implementation
+         public class OpenAIService : IOpenAIService
+         {
+             private readonly IOptions<OpenAIOptions> _options;
+             
+             public OpenAIService(IOptions<OpenAIOptions> options)
+             {
+                 _options = options;
+             }
+         }
+         ```
+
+      3. Secrets Management:
+         - Development:
+           ```
+           // Use User Secrets
+           dotnet user-secrets init
+           dotnet user-secrets set "OpenAI:ApiKey" "your-key"
+           ```
+         - Production:
+           ```
+           // Use Azure Key Vault
+           services.AddAzureKeyVault(
+               new Uri($"https://{configuration["KeyVaultName"]}.vault.azure.net/"),
+               new DefaultAzureCredential());
+           ```
+
+      4. Configuration Files:
+         ```json
+         // appsettings.Example.json
+         {
+           "OpenAI": {
+             "Model": "gpt-4",
+             "MaxTokens": 100
+           },
+           "KeyVaultName": "servoskull-kv"
+         }
+
+         // appsettings.json (no secrets)
+         {
+           "Logging": {
+             "LogLevel": {
+               "Default": "Information"
+             }
+           }
+         }
+         ```
+
+      5. Validation:
+         ```csharp
+         public class OpenAIOptions
+         {
+             [Required]
+             public string ApiKey { get; set; }
+
+             [Range(1, 4000)]
+             public int MaxTokens { get; set; }
+         }
+
+         // In Startup.cs
+         services.Configure<OpenAIOptions>(
+             configuration.GetSection("OpenAI"))
+             .ValidateDataAnnotations();
+         ```
+
+examples:
+  - input: |
+      // Bad: Direct configuration access
+      private readonly IConfiguration _config;
+      private string ApiKey => _config["OpenAI:ApiKey"];
+
+      // Good: Using Options pattern
+      private readonly IOptions<OpenAIOptions> _options;
+      private string ApiKey => _options.Value.ApiKey;
+    output: "Correctly implemented configuration access"
+
+  - input: |
+      // Bad: Hardcoded secret
+      private const string ApiKey = "secret-key";
+
+      // Good: Using User Secrets
+      // In appsettings.Example.json
+      {
+        "OpenAI": {
+          "ApiKey": "your-key-here"
+        }
+      }
+      // In User Secrets
+      {
+        "OpenAI:ApiKey": "actual-secret-key"
+      }
+    output: "Correctly implemented secrets management"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 

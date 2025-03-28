@@ -1,0 +1,121 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Git Commit Message Rules
+globs: .git/COMMIT_EDITMSG
+---
+# Git Commit Message Rules
+
+Rules for maintaining consistent and informative Git commit messages in ServoSkull.NET.
+
+<rule>
+name: git_commits
+description: Enforces Git commit message standards and best practices
+filters:
+  - type: file_extension
+    pattern: "\\.git/COMMIT_EDITMSG$"
+  - type: event
+    pattern: "file_create"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^.{73,}"
+        message: "Subject line must not exceed 72 characters"
+      - pattern: "^[a-z]"
+        message: "Subject line must start with a capital letter"
+      - pattern: "^.*\\.$"
+        message: "Subject line must not end with a period"
+      - pattern: "^[A-Za-z]+: "
+        message: "Do not use conventional commit types (feat:, fix:, etc.)"
+      - pattern: "^\\s+"
+        message: "Subject line must not start with whitespace"
+      - pattern: "^[A-Za-z]+\\s*$"
+        message: "Subject line must be a complete sentence"
+
+  - type: suggest
+    message: |
+      Git Commit Message Standards:
+
+      1. Subject Line (First Line):
+         - Maximum 72 characters
+         - Start with a capital letter
+         - No period at the end
+         - Use imperative mood ("Add" not "Added")
+         - Complete sentence
+         - Examples:
+           ```
+           Add OpenAI integration service
+           Implement voice activity detection
+           Fix webcam frame capture timing
+           ```
+
+      2. Body (After Blank Line):
+         - Separate from subject with blank line
+         - Wrap at 72 characters
+         - Explain what and why, not how
+         - Reference issues when relevant
+         - Examples:
+           ```
+           Add OpenAI integration service
+
+           Implement OpenAI service integration to handle text generation
+           and speech synthesis. This enables the servo-skull to provide
+           context-aware responses using the latest GPT models.
+
+           - Add OpenAI client with retry policies
+           - Configure proper API key management
+           - Implement response caching
+           - Add rate limiting protection
+
+           Closes #123
+           ```
+
+      3. Breaking Changes:
+         - Start with "BREAKING CHANGE:"
+         - Explain what changed and why
+         - Example:
+           ```
+           Update API client structure
+
+           BREAKING CHANGE: Move API clients to separate integration
+           projects for better separation of concerns. This change
+           requires updating service registration in Startup.cs.
+           ```
+
+      4. Common Patterns:
+         - Feature additions: "Add [feature]"
+         - Bug fixes: "Fix [issue]"
+         - Refactoring: "Refactor [component]"
+         - Performance: "Optimize [component]"
+         - Documentation: "Update [docs]"
+
+examples:
+  - input: |
+      feat: add openai integration
+
+      // Bad: Missing body, uses conventional commit type
+    output: "Incorrect commit message format"
+
+  - input: |
+      Add OpenAI integration service
+
+      Implement OpenAI service integration to handle text generation
+      and speech synthesis. This enables the servo-skull to provide
+      context-aware responses using the latest GPT models.
+
+      - Add OpenAI client with retry policies
+      - Configure proper API key management
+      - Implement response caching
+      - Add rate limiting protection
+
+      Closes #123
+    output: "Correctly formatted commit message"
+
+metadata:
+  priority: high
+  version: 1.0
+</rule> 
