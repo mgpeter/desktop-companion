@@ -4,7 +4,98 @@ globs: ServoSkull.Angular/**/*.{ts,js,css,scss,json,tsx,html}
 ---
 # Angular UI Development Rules
 
-Rules for maintaining consistent and high-quality Angular UI code in ServoSkull.Angular.
+Rules for maintaining consistent Angular development practices in ServoSkull.Angular.
+
+## Component Structure
+
+1. **Template and Component Separation**
+   - Use separate files for component templates (`.html`) and logic (`.ts`)
+   - Exception: Very simple components with templates less than 5 lines can use inline templates
+   - Benefits:
+     - Better organization for complex components
+     - Improved HTML syntax highlighting and formatting
+     - Easier collaboration with designers
+     - Better maintainability
+
+2. **Component Organization**
+   - Group related components in feature folders
+   - Use the `standalone: true` pattern for components
+   - Keep components focused and single-responsibility
+   - Use shared components for reusable UI elements
+
+3. **Styling**
+   - Use Tailwind CSS v4 for styling
+   - Maintain dark mode support with `dark:` variants
+   - Use CSS custom properties for theme values
+   - Keep component-specific styles in the component's directory
+
+## Best Practices
+
+1. **State Management**
+   - Use Angular services for state management
+   - Leverage RxJS for reactive state updates
+   - Keep component state minimal and derived from services
+   - Use `async` pipe when possible
+
+2. **Performance**
+   - Use `trackBy` functions for `*ngFor` loops
+   - Implement `OnPush` change detection when beneficial
+   - Lazy load feature modules and components
+   - Use pure pipes for computed values
+
+3. **Accessibility**
+   - Include ARIA labels and roles
+   - Ensure keyboard navigation support
+   - Maintain proper heading hierarchy
+   - Support screen readers
+
+4. **Error Handling**
+   - Implement proper error boundaries
+   - Show user-friendly error messages
+   - Log errors appropriately
+   - Provide fallback UI states
+
+## Code Style
+
+1. **Naming Conventions**
+   - Use kebab-case for file names
+   - Use PascalCase for component names
+   - Use camelCase for properties and methods
+   - Prefix services with appropriate domain
+
+2. **File Structure**
+   ```
+   feature/
+   ├── components/
+   │   ├── feature.component.ts
+   │   ├── feature.component.html
+   │   └── feature.component.spec.ts
+   ├── services/
+   │   └── feature.service.ts
+   └── models/
+       └── feature.model.ts
+   ```
+
+3. **Import Order**
+   - Angular core imports
+   - Angular feature imports
+   - Third-party imports
+   - Application imports
+   - Relative imports
+
+## Testing
+
+1. **Unit Tests**
+   - Write unit tests for components and services
+   - Use TestBed for Angular-specific testing
+   - Mock dependencies appropriately
+   - Test both success and error cases
+
+2. **E2E Tests**
+   - Write E2E tests for critical user paths
+   - Test responsive behavior
+   - Include accessibility tests
+   - Test dark mode functionality
 
 <rule>
 name: frontend_angular_ui
