@@ -2,13 +2,14 @@ import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Observable, from, of, timer, Subject } from 'rxjs';
-import { map, catchError, retry, tap, timeout, takeUntil } from 'rxjs/operators';
+import { map, catchError, retry, tap, timeout, takeUntil, switchMap } from 'rxjs/operators';
 
 export interface ChatMessage {
   text: string;
   timestamp: Date;
   isFromUser: boolean;
   imageData?: string;
+  audioData?: string;
 }
 
 @Injectable({
@@ -20,11 +21,12 @@ export class SignalRService {
   private readonly isBrowser: boolean;
   private connecting = false;
   private messageReceived = new Subject<ChatMessage>();
+  private transcriptReceived = new Subject<string>();
 
   constructor() {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
     console.log('SignalR Service initialized, isBrowser:', this.isBrowser);
-    
+
     if (this.isBrowser) {
       this.initializeConnection();
     } else {
@@ -61,6 +63,11 @@ export class SignalRService {
         timestamp: new Date(),
         isFromUser: false
       });
+    });
+
+    this.hubConnection.on('ReceiveTranscription', (audioData: string) => {
+      console.log('SignalR: Received audio response:', audioData);
+      this.transcriptReceived.next(audioData);
     });
 
     // Set up connection state change handler
@@ -100,6 +107,10 @@ export class SignalRService {
 
   public onMessageReceived(): Observable<ChatMessage> {
     return this.messageReceived.asObservable();
+  }
+
+  public onTranscriptionReceived(): Observable<string> {
+    return this.transcriptReceived.asObservable();
   }
 
   public startConnection(): Observable<boolean> {
@@ -150,8 +161,8 @@ export class SignalRService {
         this.connecting = false;
         throw error;
       }),
-      retry({ 
-        count: 3, 
+      retry({
+        count: 3,
         delay: (error, retryCount) => {
           console.log(`SignalR: Retry ${retryCount} after error:`, error);
           return timer(1000 * Math.pow(2, retryCount - 1));
@@ -187,6 +198,37 @@ export class SignalRService {
         console.error('SignalR: Error stopping connection:', error);
         // Force the connection state to false even if stop fails
         this.connectionState.next(false);
+        throw error;
+      })
+    );
+  }
+
+  public sendAudioMessage(audioBlob: Blob): Observable<void> {
+    if (!this.hubConnection || !this.isConnected()) {
+      console.error('SignalR: Cannot send audio - not connected');
+      return of(void 0);
+    }
+
+    return from(
+      // Convert blob to base64
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      })
+    ).pipe(
+      // Send to hub
+      switchMap(base64Audio => {
+        if (!this.hubConnection || !this.isConnected()) {
+          throw new Error('SignalR: Cannot send audio - not connected');
+        }
+        console.log('SignalR: Sending audio message:', base64Audio);
+        return from(this.hubConnection.invoke('ProcessAudioMessage', base64Audio));
+      }),
+      tap(() => console.log('SignalR: Audio message sent')),
+      catchError(error => {
+        console.error('SignalR: Error sending audio message:', error);
         throw error;
       })
     );

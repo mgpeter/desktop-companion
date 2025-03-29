@@ -19,7 +19,7 @@ public interface IOpenAIClient
     /// </summary>
     /// <param name="audioData">The raw audio data in bytes.</param>
     /// <returns>The transcribed text.</returns>
-    Task<string> TranscribeAudioAsync(byte[] audioData);
+    Task<string> TranscribeAudioAsync(string base64);
 
     /// <summary>
     /// Generates speech from text using TTS API.

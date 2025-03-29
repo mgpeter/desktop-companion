@@ -7,11 +7,17 @@ import { SignalRService, ChatMessage } from '../../core/services/signalr.service
 import { WebcamService } from '../../core/services/webcam.service';
 import { Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { AudioControlsComponent } from '../../shared/components/audio-controls/audio-controls.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, WebcamPreviewComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    WebcamPreviewComponent,
+    AudioControlsComponent
+  ],
   templateUrl: './chat.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -87,6 +93,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
         this.scrollToBottom();
       });
 
+    this.signalRService.onTranscriptionReceived()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(transcription => {
+        console.log('Chat: Transcription received:', transcription);
+        this.messageInput = transcription;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        this.sendMessage();
+      });
+
     // Start SignalR connection
     this.signalRService.startConnection().subscribe({
       next: (success) => {
@@ -154,6 +170,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
       } catch (error) {
         console.error('Error in sendMessage:', error);
       }
+    }
+  }
+
+  async handleAudioRecorded(audioBlob: Blob): Promise<void> {
+    try {
+      await firstValueFrom(this.signalRService.sendAudioMessage(audioBlob));
+    } catch (error) {
+      console.error('Error sending audio message:', error);
     }
   }
 } 

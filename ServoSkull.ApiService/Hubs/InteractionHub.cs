@@ -81,43 +81,11 @@ public class InteractionHub : Hub
         }
     }
 
-    public async Task ProcessVideoFrame(byte[] frameData)
+    public async Task ProcessAudioMessage(string base64Audio)
     {
         try
         {
-            var connectionId = Context.ConnectionId;
-            var recentMessages = _sessionManager.GetRecentMessages(connectionId);
-            
-            // Create request with frame data and conversation history
-            var request = new MultimodalRequest
-            {
-                Transcript = string.Empty,
-                ImageData = Convert.ToBase64String(frameData),
-                PreviousContext = JsonSerializer.Serialize(recentMessages, _jsonOptions)
-            };
-
-            var response = await _aiService.ProcessMessageAsync(request);
-            if (response != null)
-            {
-                // Add the frame analysis to conversation history
-                _sessionManager.AddMessage(connectionId, "user", "Video frame captured", request.ImageData);
-                _sessionManager.AddMessage(connectionId, "assistant", response);
-                
-                await Clients.Caller.SendAsync("ReceiveResponse", response);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing video frame");
-            await SendErrorAsync("VIDEO_PROCESSING_FAILED", "Failed to process video frame", ex.Message);
-        }
-    }
-
-    public async Task ProcessAudioStream(byte[] audioData)
-    {
-        try
-        {
-            var response = await _aiService.ProcessAudioAsync(audioData);
+            var response = await _aiService.ProcessAudioAsync(base64Audio);
             if (response != null)
             {
                 await Clients.Caller.SendAsync("ReceiveTranscription", response);

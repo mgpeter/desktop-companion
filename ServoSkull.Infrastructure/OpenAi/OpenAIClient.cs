@@ -6,6 +6,7 @@ using ServoSkull.Core.Abstractions.Clients;
 using ServoSkull.Core.Models.Api;
 using System;
 using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -80,14 +81,15 @@ public class OpenAIClient : IOpenAIClient
         return index >= 0 ? dataUrl[(index + prefix.Length)..] : dataUrl;
     }
 
-    public async Task<string> TranscribeAudioAsync(byte[] audioData)
+    public async Task<string> TranscribeAudioAsync(string base64audioData)
     {
         try
         {
-            var content = BinaryContent.Create(BinaryData.FromBytes(audioData));
-            ClientResult? result = await _audioClient.TranscribeAudioAsync(content, "audio/mp3");
-            return result?.ToString() ?? string.Empty;
-
+            string base64Data = StripDataUrlPrefix(base64audioData);
+            byte[] audioBytes = Convert.FromBase64String(base64Data);
+            using var stream = new MemoryStream(audioBytes);
+            var result = await _audioClient.TranscribeAudioAsync(stream, "audio.webm");
+            return result.Value.Text ?? string.Empty;
         }
         catch (Exception ex)
         {

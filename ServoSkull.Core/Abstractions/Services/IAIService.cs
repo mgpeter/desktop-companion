@@ -19,5 +19,5 @@ public interface IAIService
     /// </summary>
     /// <param name="audioData">The raw audio data.</param>
     /// <returns>Transcription or analysis results if successful, null otherwise.</returns>
-    Task<string?> ProcessAudioAsync(byte[] audioData);
+    Task<string?> ProcessAudioAsync(string base64);
 } 

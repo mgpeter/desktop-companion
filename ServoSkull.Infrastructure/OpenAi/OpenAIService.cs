@@ -46,11 +46,11 @@ public class OpenAIService : IAIService
         }
     }
 
-    public async Task<string?> ProcessAudioAsync(byte[] audioData)
+    public async Task<string?> ProcessAudioAsync(string base64AudioString)
     {
         try
         {
-            return await _openAIClient.TranscribeAudioAsync(audioData);
+            return await _openAIClient.TranscribeAudioAsync(base64AudioString);
         }
         catch (Exception ex)
         {
