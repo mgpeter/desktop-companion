@@ -1,6 +1,6 @@
 ---
 description: Frontend Angular UI Rules
-globs: ServoSkull.Angular/**/*.{ts,js,css,scss,json,tsx,html}
+globs: *.ts,*.js,*.css,*.scss,*.json,*.tsx,*.html
 ---
 # Angular UI Development Rules
 

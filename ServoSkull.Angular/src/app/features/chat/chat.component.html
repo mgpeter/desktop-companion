@@ -9,13 +9,32 @@
 
   <!-- Chat Section -->
   <div class="w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col">
-    <h2 class="text-xl font-semibold mb-4">Chat</h2>
-    <!-- Chat Messages -->
-    <div class="flex-grow bg-white dark:bg-slate-700 rounded-lg mb-4 p-4 overflow-y-auto">
-      <div class="text-center text-slate-500 dark:text-slate-400">
-        No messages yet
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Chat</h2>
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full" [ngClass]="isConnected ? 'bg-green-500' : 'bg-red-500'"></div>
+        <span class="text-sm text-slate-500 dark:text-slate-400">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
       </div>
     </div>
+
+    <!-- Chat Messages -->
+    <div class="flex-grow bg-white dark:bg-slate-700 rounded-lg mb-4 p-4 overflow-y-auto">
+      <div *ngIf="messages.length === 0" class="text-center text-slate-500 dark:text-slate-400">
+        No messages yet
+      </div>
+      <div *ngFor="let message of messages" class="mb-4">
+        <div class="flex flex-col" [ngClass]="message.isFromUser ? 'items-end' : 'items-start'">
+          <div class="max-w-[80%] px-4 py-2 rounded-lg" 
+               [ngClass]="message.isFromUser ? 'bg-blue-500 text-white' : 'bg-slate-200 dark:bg-slate-600'">
+            {{ message.text }}
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {{ message.timestamp | date:'shortTime' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Chat Input -->
     <div class="flex gap-2">
       <input
@@ -24,10 +43,12 @@
         class="flex-grow px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         [(ngModel)]="messageInput"
         (keyup.enter)="sendMessage()"
+        [disabled]="!isConnected"
       >
       <button
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="sendMessage()"
+        [disabled]="!isConnected"
       >
         Send
       </button>

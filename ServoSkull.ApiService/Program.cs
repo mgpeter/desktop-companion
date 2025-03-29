@@ -12,11 +12,11 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 // Configure CORS with environment variable
-var frontendUri = builder.Configuration["FRONTEND_URI"] 
-    ?? Environment.GetEnvironmentVariable("FRONTEND_URI") 
+var frontendUri = builder.Configuration["FRONTEND_URI"]
+    ?? Environment.GetEnvironmentVariable("FRONTEND_URI")
     ?? throw new InvalidOperationException("FRONTEND_URI environment variable is required");
 
-builder.Services.Configure<CorsOptions>(options => 
+builder.Services.Configure<CorsOptions>(options =>
 {
     options.AllowedOrigins = new[] { frontendUri };
 });
@@ -33,11 +33,12 @@ builder.Services.AddCors(options =>
 });
 
 // Configure SignalR
-builder.Services.AddSignalR(options =>
-{
-    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-    options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB for video frames
-});
+builder.Services
+    .AddSignalR(options =>
+    {
+        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+        options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB for video frames
+    });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
