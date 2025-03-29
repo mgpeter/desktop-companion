@@ -103,8 +103,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
     this.signalRService.onMessageReceived()
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        console.log('Chat: Message received:', message);
+        console.log('Chat: Message received:', {
+          text: message.text?.substring(0, 50),
+          hasAudio: !!message.audioData,
+          isFromUser: message.isFromUser
+        });
+        
         this.messages.push(message);
+        
+        // Automatically play audio for bot messages
+        if (message.audioData && !message.isFromUser) {
+          console.log('Chat: Auto-playing bot audio message');
+          this.handleAudioPlayback(message).catch(error => {
+            console.error('Chat: Failed to auto-play audio:', error);
+          });
+        }
+        
         this.cdr.markForCheck();
         // Ensure view is updated before scrolling
         this.cdr.detectChanges();
