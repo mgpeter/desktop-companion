@@ -1,0 +1,66 @@
+<div class="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+  <!-- Header -->
+  <header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-slate-950/60">
+    <div class="container flex h-16 items-center justify-between">
+      <div class="flex items-center gap-6">
+        <a class="flex items-center space-x-2 group" href="/">
+          <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg transition-all group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span class="font-bold text-xl text-slate-900 dark:text-slate-100">ServoSkull</span>
+        </a>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button
+          (click)="toggleTheme()"
+          aria-label="Toggle theme"
+          class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 hover:bg-slate-100 dark:hover:bg-slate-800 h-10 w-10"
+        >
+          <!-- Sun icon -->
+          <svg
+            *ngIf="isDarkMode"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            class="w-5 h-5 text-slate-900 dark:text-slate-100 transition-all"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+            />
+          </svg>
+
+          <!-- Moon icon -->
+          <svg
+            *ngIf="!isDarkMode"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            class="w-5 h-5 text-slate-900 dark:text-slate-100 transition-all"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
+    <router-outlet></router-outlet>
+  </main>
+</div> 

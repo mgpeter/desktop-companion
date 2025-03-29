@@ -72,7 +72,7 @@ actions:
          ```
 
       4. Styling Standards:
-         - Use Tailwind CSS for styling
+         - Use Tailwind CSS v4 for styling
          - BEM naming convention
          - Component-scoped styles
          - Shared tailwind variables for theming
