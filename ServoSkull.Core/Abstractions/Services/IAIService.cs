@@ -1,3 +1,5 @@
+using ServoSkull.Core.Models.Api;
+
 namespace ServoSkull.Core.Abstractions.Services;
 
 /// <summary>
@@ -6,11 +8,11 @@ namespace ServoSkull.Core.Abstractions.Services;
 public interface IAIService
 {
     /// <summary>
-    /// Processes a text message and returns an AI-generated response.
+    /// Processes a multimodal request and returns an AI-generated response.
     /// </summary>
-    /// <param name="message">The input message to process.</param>
+    /// <param name="request">The multimodal request containing text, optional image data, and conversation context.</param>
     /// <returns>The AI-generated response.</returns>
-    Task<string> ProcessMessageAsync(string message);
+    Task<string> ProcessMessageAsync(MultimodalRequest request);
 
     /// <summary>
     /// Processes a video frame and returns any detected information or insights.

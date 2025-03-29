@@ -6,6 +6,7 @@ using ServoSkull.Core.Abstractions.Clients;
 using ServoSkull.Core.Abstractions.Services;
 using ServoSkull.Core.Configuration;
 using ServoSkull.Infrastructure.OpenAi;
+using ServoSkull.Infrastructure.Services;
 
 namespace ServoSkull.Infrastructure;
 
@@ -24,6 +25,7 @@ public static class StartupExtensions
             .AddPolicyHandler(GetCircuitBreakerPolicy());
 
         // Add services
+        services.AddSingleton<ISessionManager, SessionManager>();
         services.AddScoped<IAIService, OpenAIService>();
 
         return services;

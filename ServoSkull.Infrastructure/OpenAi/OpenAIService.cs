@@ -18,22 +18,15 @@ public class OpenAIService : IAIService
         _logger = logger;
     }
 
-    public async Task<string> ProcessMessageAsync(string message)
+    public async Task<string> ProcessMessageAsync(MultimodalRequest request)
     {
         try
         {
-            // For text-only messages, we'll create a multimodal request without image
-            var request = new MultimodalRequest
-            {
-                Transcript = message,
-                ImageData = string.Empty
-            };
-
             return await _openAIClient.ProcessMultimodalRequestAsync(request);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process message: {Message}", message);
+            _logger.LogError(ex, "Failed to process message: {Message}", request.Transcript);
             throw;
         }
     }

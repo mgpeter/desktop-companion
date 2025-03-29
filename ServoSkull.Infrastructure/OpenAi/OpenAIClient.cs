@@ -8,12 +8,11 @@ using Microsoft.Extensions.Options;
 using ServoSkull.Core.Abstractions.Clients;
 using ServoSkull.Core.Configuration;
 using ServoSkull.Core.Models.Api;
+using ServoSkull.Core.Models.Chat;
 
 namespace ServoSkull.Infrastructure.OpenAi;
 
 public class OpenAIClient : IOpenAIClient
-
-
 {
     private readonly HttpClient _httpClient;
     private readonly IOptions<OpenAIOptions> _options;
@@ -33,7 +32,6 @@ public class OpenAIClient : IOpenAIClient
         _options = options;
         _logger = logger;
 
-        // Configure HTTP client
         _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/");
         _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _options.Value.ApiKey);
@@ -49,24 +47,46 @@ public class OpenAIClient : IOpenAIClient
     {
         try
         {
-            var messages = new ChatMessage[]
+            var messages = new List<ChatMessage>
             {
                 new(
                     Role: "system",
                     Content: "You are a sarcastic, theatrical British servo-skull assistant from Warhammer 40,000. Respond with dramatic flair and dry wit."
-                ),
-                new(
-                    Role: "user",
-                    Content: new ContentItem[]
-                    {
-                        new(Type: "text", Text: request.Transcript),
-                        new(
-                            Type: "image_url",
-                            ImageUrl: new ImageUrl($"data:image/jpeg;base64,{request.ImageData}")
-                        )
-                    }
                 )
             };
+
+            // Add conversation history if available
+            if (request.PreviousContext != null)
+            {
+                var previousMessages = JsonSerializer.Deserialize<List<ConversationMessage>>(
+                    request.PreviousContext, _jsonOptions);
+                
+                if (previousMessages != null)
+                {
+                    messages.AddRange(previousMessages.Select(m => new ChatMessage(
+                        Role: m.Role,
+                        Content: m.ImageData != null
+                            ? new ContentItem[]
+                            {
+                                new(Type: "text", Text: m.Content),
+                                new(Type: "image_url", ImageUrl: new ImageUrl($"data:image/jpeg;base64,{m.ImageData}"))
+                            }
+                            : m.Content
+                    )));
+                }
+            }
+
+            // Add current request
+            messages.Add(new ChatMessage(
+                Role: "user",
+                Content: string.IsNullOrEmpty(request.ImageData)
+                    ? request.Transcript
+                    : new ContentItem[]
+                    {
+                        new(Type: "text", Text: request.Transcript),
+                        new(Type: "image_url", ImageUrl: new ImageUrl($"data:image/jpeg;base64,{request.ImageData}"))
+                    }
+            ));
 
             var requestBody = new
             {
