@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 export class AppLayoutComponent implements OnInit {
   isDarkMode = false;
   private isBrowser: boolean;
+  logoPath = '/assets/images/logo-initial-small-64px.png';
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);

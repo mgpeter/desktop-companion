@@ -1,13 +1,16 @@
 <div class="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50">
   <!-- Header -->
   <header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-slate-950/60">
-    <div class="container flex h-16 items-center justify-between">
-      <div class="flex items-center gap-6">
-        <a class="flex items-center space-x-2 group" href="/">
-          <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg transition-all group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-slate-800 dark:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+    <div class="container flex h-16 items-center justify-between px-6">
+      <div class="flex items-center">
+        <a class="flex items-center space-x-3 group" href="/">
+          <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-all group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
+            <img 
+              [src]="logoPath" 
+              alt="ServoSkull Logo" 
+              class="w-8 h-8 transition-transform group-hover:scale-110"
+              loading="eager"
+            >
           </div>
           <span class="font-bold text-xl text-slate-900 dark:text-slate-100">ServoSkull</span>
         </a>
