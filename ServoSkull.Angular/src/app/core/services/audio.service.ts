@@ -51,9 +51,9 @@ export class AudioService {
   private defaultConfig: AudioConfig = {
     sampleRate: 16000,
     channels: 1,
-    startThreshold: 0.09,    
-    stopThreshold: 0.09,     
-    silenceThreshold: 1500,
+    startThreshold: 0.16,    // Increased to 12% - require clearer speech to start
+    stopThreshold: 0.09,     // Keep at 8% to maintain recording during softer speech
+    silenceThreshold: 2000,  // 1.5 seconds of silence
     smoothingTimeConstant: 0.8
   };
 
@@ -212,18 +212,44 @@ export class AudioService {
           const threshold = currentState.isRecording ? config.stopThreshold : config.startThreshold;
           const voiceDetected = normalizedLevel > threshold;
 
-          // Log significant level changes
-          if (normalizedLevel > 0.02) {
-            console.debug('Audio level:', {
-              level: normalizedLevel.toFixed(3),
-              threshold: threshold.toFixed(3),
-              isRecording: currentState.isRecording,
-              lowVolumeFrames
-            });
+          // Handle frame counting for silence detection independently of state updates
+          if (currentState.isRecording) {
+            if (!voiceDetected) {
+              lowVolumeFrames++;
+              console.debug('Low volume frames:', {
+                frames: lowVolumeFrames,
+                needed: framesToWait,
+                level: normalizedLevel.toFixed(3),
+                threshold: threshold.toFixed(3)
+              });
+              
+              if (lowVolumeFrames >= framesToWait) {
+                console.log('Silence threshold reached, stopping recording:', {
+                  frames: lowVolumeFrames,
+                  requiredFrames: framesToWait,
+                  level: normalizedLevel.toFixed(3),
+                  threshold: threshold.toFixed(3)
+                });
+                this.stopRecordingInternal().catch(error => {
+                  console.error('Error stopping recording:', error);
+                });
+                lowVolumeFrames = 0;
+              }
+            } else {
+              if (lowVolumeFrames > 0) {
+                console.debug('Voice detected, resetting silence counter:', {
+                  hadFrames: lowVolumeFrames,
+                  level: normalizedLevel.toFixed(3),
+                  threshold: threshold.toFixed(3)
+                });
+              }
+              lowVolumeFrames = 0;
+            }
           }
-          
-          // Update state if significant change
+
+          // Handle state updates separately
           if (voiceDetected !== currentState.voiceDetected || Math.abs(normalizedLevel - currentState.audioLevel) > 0.05) {
+            // Log voice detection changes
             if (voiceDetected !== currentState.voiceDetected) {
               console.log('Voice detection changed:', {
                 wasDetected: currentState.voiceDetected,
@@ -232,33 +258,21 @@ export class AudioService {
                 threshold: threshold.toFixed(3)
               });
             }
-            
+
+            // Update monitor state
             this.monitorState.next({
               ...currentState,
               voiceDetected,
               audioLevel: normalizedLevel
             });
 
-            // Handle recording state
+            // Handle recording start
             if (voiceDetected && !currentState.isRecording) {
-              console.log('Voice detected above start threshold, starting recording');
-              lowVolumeFrames = 0;
+              console.log('Voice detected, starting recording:', {
+                level: normalizedLevel.toFixed(3),
+                threshold: threshold.toFixed(3)
+              });
               this.startRecordingInternal();
-            } else if (!voiceDetected && currentState.isRecording) {
-              lowVolumeFrames++;
-              console.log('Low volume frames:', lowVolumeFrames);
-              
-              if (lowVolumeFrames >= framesToWait) {
-                console.log('Sustained silence detected, stopping recording:', {
-                  frames: lowVolumeFrames,
-                  threshold: config.stopThreshold,
-                  duration: config.silenceThreshold
-                });
-                this.stopRecordingInternal();
-                lowVolumeFrames = 0;
-              }
-            } else if (voiceDetected && currentState.isRecording) {
-              // Reset counter if we detect voice while recording
               lowVolumeFrames = 0;
             }
           }
