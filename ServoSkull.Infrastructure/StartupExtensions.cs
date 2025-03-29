@@ -19,12 +19,8 @@ public static class StartupExtensions
         // Add configuration
         services.Configure<OpenAIOptions>(configuration.GetSection("OpenAI"));
 
-        // Add HTTP client with retry and circuit breaker policies
-        services.AddHttpClient<IOpenAIClient, OpenAIClient>()
-            .AddPolicyHandler(GetRetryPolicy())
-            .AddPolicyHandler(GetCircuitBreakerPolicy());
 
-        // Add services
+        services.AddScoped<IOpenAIClient, OpenAIClient>();
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddScoped<IAIService, OpenAIService>();
 

@@ -20,7 +20,6 @@ public class OpenAIService : IAIService
 
     public async Task<string> ProcessMessageAsync(MultimodalRequest request)
     {
-        return "DUMMY MESSAGE";
         try
         {
             return await _openAIClient.ProcessMultimodalRequestAsync(request);
@@ -34,7 +33,6 @@ public class OpenAIService : IAIService
 
     public async Task<string?> ProcessVideoFrameAsync(byte[] frameData)
     {
-        return "DUMMY VIDEO FRAME DESCRIPTION";
         try
         {
             // Convert frame data to base64
@@ -43,7 +41,7 @@ public class OpenAIService : IAIService
             // Create request with empty transcript since this is image-only
             var request = new MultimodalRequest
             {
-                Transcript = string.Empty,
+                Transcript = "Describe what you see in this image.",
                 ImageData = base64Image
             };
 
@@ -58,7 +56,6 @@ public class OpenAIService : IAIService
 
     public async Task<string?> ProcessAudioAsync(byte[] audioData)
     {
-        return "DUMMY AUDIO TRANSCRIPT";
         try
         {
             return await _openAIClient.TranscribeAudioAsync(audioData);

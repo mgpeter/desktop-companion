@@ -1,121 +1,68 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
+using Microsoft.Extensions.Configuration;
+using OpenAI;
+using OpenAI.Audio;
+using OpenAI.Chat;
 using ServoSkull.Core.Abstractions.Clients;
-using ServoSkull.Core.Configuration;
 using ServoSkull.Core.Models.Api;
-using ServoSkull.Core.Models.Chat;
+using System;
+using System.ClientModel;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ServoSkull.Infrastructure.OpenAi;
 
 public class OpenAIClient : IOpenAIClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly IOptions<OpenAIOptions> _options;
-    private readonly ILogger<OpenAIClient> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly ChatClient _chatClient;
+    private readonly AudioClient _audioClient;
+    private readonly string _apiKey;
 
-    private record ChatMessage(string Role, object Content);
-    private record ImageUrl(string Url);
-    private record ContentItem(string Type, string? Text = null, ImageUrl? ImageUrl = null);
-
-    public OpenAIClient(
-        HttpClient httpClient,
-        IOptions<OpenAIOptions> options,
-        ILogger<OpenAIClient> logger)
+    public OpenAIClient(IConfiguration configuration)
     {
-        _httpClient = httpClient;
-        _options = options;
-        _logger = logger;
-
-        _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/");
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _options.Value.ApiKey);
-
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
+        _apiKey = configuration["OpenAI:ApiKey"] ?? throw new ArgumentNullException("OpenAI:ApiKey");
+        _chatClient = new ChatClient("gpt-4o", _apiKey);
+        _audioClient = new AudioClient("whisper-1", _apiKey);
     }
 
     public async Task<string> ProcessMultimodalRequestAsync(MultimodalRequest request)
     {
         try
         {
-            var messages = new List<ChatMessage>
-            {
-                new(
-                    Role: "system",
-                    Content: "You are a sarcastic, theatrical British servo-skull assistant from Warhammer 40,000. Respond with dramatic flair and dry wit."
-                )
-            };
+            var messages = new List<ChatMessage>();
 
-            // Add conversation history if available
-            if (request.PreviousContext != null)
+            if (!string.IsNullOrEmpty(request.PreviousContext))
             {
-                var previousMessages = JsonSerializer.Deserialize<List<ConversationMessage>>(
-                    request.PreviousContext, _jsonOptions);
-                
-                if (previousMessages != null)
-                {
-                    messages.AddRange(previousMessages.Select(m => new ChatMessage(
-                        Role: m.Role,
-                        Content: m.ImageData != null
-                            ? new ContentItem[]
-                            {
-                                new(Type: "text", Text: m.Content),
-                                new(Type: "image_url", ImageUrl: new ImageUrl($"data:image/jpeg;base64,{m.ImageData}"))
-                            }
-                            : m.Content
-                    )));
-                }
+                messages.Add(new SystemChatMessage(request.PreviousContext));
             }
 
-            // Add current request
-            messages.Add(new ChatMessage(
-                Role: "user",
-                Content: string.IsNullOrEmpty(request.ImageData)
-                    ? request.Transcript
-                    : new ContentItem[]
-                    {
-                        new(Type: "text", Text: request.Transcript),
-                        new(Type: "image_url", ImageUrl: new ImageUrl($"data:image/jpeg;base64,{request.ImageData}"))
-                    }
-            ));
-
-            var requestBody = new
+            if (!string.IsNullOrEmpty(request.ImageData))
             {
-                model = _options.Value.AssistantModel,
-                messages,
-                max_tokens = _options.Value.MaxTokens,
-                temperature = _options.Value.Temperature
-            };
+                BinaryData binaryData = BinaryData.FromBytes(Convert.FromBase64String(request.ImageData));
+                messages.Add(new UserChatMessage(new[]
+                {
+                    ChatMessageContentPart.CreateTextPart(request.Transcript),
+                    ChatMessageContentPart.CreateImagePart(binaryData,"image/png")
+                }));
+            }
+            else
+            {
+                messages.Add(new UserChatMessage(request.Transcript));
+            }
 
-            var response = await _httpClient.PostAsync("chat/completions",
-                new StringContent(
-                    JsonSerializer.Serialize(requestBody, _jsonOptions),
-                    Encoding.UTF8,
-                    "application/json"));
-
-            response.EnsureSuccessStatusCode();
-
-            var result = await JsonSerializer.DeserializeAsync<JsonElement>(
-                await response.Content.ReadAsStreamAsync());
-
-            return result.GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString() ?? "By the Omnissiah, my circuits have failed me.";
+            var completion = await _chatClient.CompleteChatAsync(messages);
+            var textResponse = completion.Value.Content
+                .Where(x => x.Kind == ChatMessageContentPartKind.Text)
+                .Select(x => x.Text)
+                .Aggregate((a, b) => $"{a}{Environment.NewLine}{b}");
+            
+            return textResponse;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process multimodal request");
-            throw;
+            throw new Exception($"Error processing multimodal request: {ex.Message}", ex);
         }
     }
 
@@ -123,22 +70,14 @@ public class OpenAIClient : IOpenAIClient
     {
         try
         {
-            var content = new MultipartFormDataContent();
-            content.Add(new ByteArrayContent(audioData), "file", "audio.webm");
-            content.Add(new StringContent(_options.Value.WhisperModel), "model");
+            var content = BinaryContent.Create(BinaryData.FromBytes(audioData));
+            ClientResult? result = await _audioClient.TranscribeAudioAsync(content, "audio/mp3");
+            return result?.ToString() ?? string.Empty;
 
-            var response = await _httpClient.PostAsync("audio/transcriptions", content);
-            response.EnsureSuccessStatusCode();
-
-            var result = await JsonSerializer.DeserializeAsync<JsonElement>(
-                await response.Content.ReadAsStreamAsync());
-
-            return result.GetProperty("text").GetString() ?? string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to transcribe audio");
-            throw;
+            throw new Exception($"Error transcribing audio: {ex.Message}", ex);
         }
     }
 
@@ -146,26 +85,13 @@ public class OpenAIClient : IOpenAIClient
     {
         try
         {
-            var requestBody = new
-            {
-                model = _options.Value.TTSModel,
-                input = text,
-                voice = _options.Value.TTSVoice
-            };
-
-            var response = await _httpClient.PostAsync("audio/speech",
-                new StringContent(
-                    JsonSerializer.Serialize(requestBody, _jsonOptions),
-                    Encoding.UTF8,
-                    "application/json"));
-
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsByteArrayAsync();
+            using var memoryStream = new MemoryStream();
+            ClientResult<BinaryData>? result = await _audioClient.GenerateSpeechAsync(text, GeneratedSpeechVoice.Alloy);
+            return result.Value.ToArray();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate speech");
-            throw;
+            throw new Exception($"Error generating speech: {ex.Message}", ex);
         }
     }
 }
