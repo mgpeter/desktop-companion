@@ -5,8 +5,10 @@ import { catchError, tap, map, debounceTime } from 'rxjs/operators';
 export interface AudioConfig {
   sampleRate: number;
   channels: number;
-  vadThreshold: number;  // Voice activity detection threshold
+  startThreshold: number;  // Threshold to start recording
+  stopThreshold: number;   // Lower threshold to maintain recording
   silenceThreshold: number;  // Time in ms to consider silence as end of speech
+  smoothingTimeConstant: number; // Smoothing factor for audio analysis
 }
 
 export interface AudioPlaybackState {
@@ -49,8 +51,10 @@ export class AudioService {
   private defaultConfig: AudioConfig = {
     sampleRate: 16000,
     channels: 1,
-    vadThreshold: 0.08,  // Lowered from 0.2 to 0.08 (8%) based on observed levels
-    silenceThreshold: 1500  // 1.5 seconds of silence to stop recording
+    startThreshold: 0.09,    
+    stopThreshold: 0.09,     
+    silenceThreshold: 1500,
+    smoothingTimeConstant: 0.8
   };
 
   constructor(private ngZone: NgZone) {}
@@ -151,105 +155,132 @@ export class AudioService {
   private setupAudioAnalysis(stream: MediaStream, config: AudioConfig) {
     try {
       console.log('Setting up audio analysis with config:', {
-        vadThreshold: config.vadThreshold,
+        startThreshold: config.startThreshold,
+        stopThreshold: config.stopThreshold,
         silenceThreshold: config.silenceThreshold
       });
-
-      this.audioContext = new AudioContext();
+      
+      // Create new audio context if needed
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.audioContext = new AudioContext();
+      }
+      
+      // Resume audio context if suspended
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+      
       const source = this.audioContext.createMediaStreamSource(stream);
       this.analyzer = this.audioContext.createAnalyser();
       this.analyzer.fftSize = 2048;
-      this.analyzer.smoothingTimeConstant = 0.8; // Add smoothing to reduce jitter
+      this.analyzer.smoothingTimeConstant = config.smoothingTimeConstant;
       source.connect(this.analyzer);
 
       const bufferLength = this.analyzer.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      
+      // Keep track of consecutive frames below stop threshold
+      let lowVolumeFrames = 0;
+      const framesPerSecond = 60; // Assuming 60fps for requestAnimationFrame
+      const framesToWait = Math.ceil((config.silenceThreshold / 1000) * framesPerSecond);
 
       const checkAudioLevel = () => {
-        if (!this.analyzer) {
-          console.warn('Analyzer not available');
-          return;
-        }
-
-        if (!this.monitorState.value.isMonitoring) {
-          console.debug('Monitoring stopped, ending audio check loop');
+        if (!this.analyzer || !this.monitorState.value.isMonitoring) {
+          console.debug('Audio check loop stopped:', {
+            hasAnalyzer: !!this.analyzer,
+            isMonitoring: this.monitorState.value.isMonitoring
+          });
           return;
         }
 
         this.analyzer.getByteFrequencyData(dataArray);
         
-        // Calculate RMS (Root Mean Square) value for better voice detection
+        // Calculate RMS value with improved accuracy
         let sum = 0;
+        let nonZeroCount = 0;
         for (let i = 0; i < bufferLength; i++) {
-          sum += (dataArray[i] / 255) * (dataArray[i] / 255);
+          const value = dataArray[i] / 255;
+          if (value > 0) {
+            sum += value * value;
+            nonZeroCount++;
+          }
         }
-        const normalizedLevel = Math.sqrt(sum / bufferLength);
+        const normalizedLevel = Math.sqrt(sum / (nonZeroCount || bufferLength));
+        
+        this.ngZone.run(() => {
+          const currentState = this.monitorState.value;
+          const threshold = currentState.isRecording ? config.stopThreshold : config.startThreshold;
+          const voiceDetected = normalizedLevel > threshold;
 
-        const voiceDetected = normalizedLevel > config.vadThreshold;
-        const currentState = this.monitorState.value;
-
-        // Log significant audio level changes
-        if (normalizedLevel > 0.05) { // Lower logging threshold to see more data
-          console.debug('Audio level:', {
-            level: normalizedLevel.toFixed(3),
-            isVoice: voiceDetected,
-            threshold: config.vadThreshold,
-            peak: Math.max(...Array.from(dataArray)) / 255
-          });
-        }
-
-        if (voiceDetected !== currentState.voiceDetected || Math.abs(normalizedLevel - currentState.audioLevel) > 0.05) {
-          this.ngZone.run(() => {
+          // Log significant level changes
+          if (normalizedLevel > 0.02) {
+            console.debug('Audio level:', {
+              level: normalizedLevel.toFixed(3),
+              threshold: threshold.toFixed(3),
+              isRecording: currentState.isRecording,
+              lowVolumeFrames
+            });
+          }
+          
+          // Update state if significant change
+          if (voiceDetected !== currentState.voiceDetected || Math.abs(normalizedLevel - currentState.audioLevel) > 0.05) {
             if (voiceDetected !== currentState.voiceDetected) {
-              console.log('Voice detection state changed:', {
+              console.log('Voice detection changed:', {
                 wasDetected: currentState.voiceDetected,
                 isDetected: voiceDetected,
-                audioLevel: normalizedLevel.toFixed(3),
-                threshold: config.vadThreshold
+                level: normalizedLevel.toFixed(3),
+                threshold: threshold.toFixed(3)
               });
             }
-
+            
             this.monitorState.next({
               ...currentState,
               voiceDetected,
               audioLevel: normalizedLevel
             });
 
-            // Handle voice detection state changes
+            // Handle recording state
             if (voiceDetected && !currentState.isRecording) {
-              console.log('Voice detected, starting recording');
+              console.log('Voice detected above start threshold, starting recording');
+              lowVolumeFrames = 0;
               this.startRecordingInternal();
             } else if (!voiceDetected && currentState.isRecording) {
-              // Clear existing timeout
-              if (this.silenceTimeout) {
-                clearTimeout(this.silenceTimeout);
-              }
+              lowVolumeFrames++;
+              console.log('Low volume frames:', lowVolumeFrames);
               
-              // Set new timeout for silence detection
-              this.silenceTimeout = setTimeout(() => {
-                this.ngZone.run(() => {
-                  if (this.monitorState.value.isRecording) {
-                    console.log('Silence threshold reached, stopping recording');
-                    this.stopRecordingInternal().catch(error => {
-                      console.error('Error stopping recording after silence:', error);
-                    });
-                  }
+              if (lowVolumeFrames >= framesToWait) {
+                console.log('Sustained silence detected, stopping recording:', {
+                  frames: lowVolumeFrames,
+                  threshold: config.stopThreshold,
+                  duration: config.silenceThreshold
                 });
-              }, config.silenceThreshold);
+                this.stopRecordingInternal();
+                lowVolumeFrames = 0;
+              }
+            } else if (voiceDetected && currentState.isRecording) {
+              // Reset counter if we detect voice while recording
+              lowVolumeFrames = 0;
             }
-          });
-        }
+          }
+        });
 
-        // Continue the monitoring loop
+        // Continue monitoring loop
         requestAnimationFrame(checkAudioLevel);
       };
 
-      // Store the checkAudioLevel function for later use
+      // Store the function for later use
       this.checkAudioLevel = checkAudioLevel;
+      
+      // Start monitoring if already enabled
+      if (this.monitorState.value.isMonitoring) {
+        console.log('Starting initial audio check loop');
+        requestAnimationFrame(checkAudioLevel);
+      }
+      
       console.log('Audio analysis setup complete');
     } catch (error) {
       console.error('Error setting up audio analysis:', error);
-      throw error; // Propagate setup errors
+      throw error;
     }
   }
 
