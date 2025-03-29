@@ -24,12 +24,14 @@ import { AudioControlsComponent } from '../../shared/components/audio-controls/a
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('messageContainer') private messageContainer?: ElementRef;
-  
+
   messageInput = '';
   messages: ChatMessage[] = [];
   isConnected = false;
   private readonly destroy$ = new Subject<void>();
   private readonly isBrowser: boolean;
+  private currentlyPlayingMessage: ChatMessage | null = null;
+  private isAudioPlaying = false;
 
   constructor(
     private signalRService: SignalRService,
@@ -38,6 +40,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
     public audioService: AudioService
   ) {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+    // Subscribe to audio playback state
+    this.audioService.playbackState$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(state => {        
+        this.isAudioPlaying = state.isPlaying;
+        
+        // If playback stopped, clear the current message
+        if (!state.isPlaying) {
+          this.currentlyPlayingMessage = null;
+        }
+        
+        this.cdr.markForCheck();
+      });
   }
 
   ngAfterViewInit(): void {
@@ -133,12 +149,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
         // Try to capture frame if webcam is active
         const isWebcamActive = await firstValueFrom(this.webcamService.isStreamActive$);
         let frameData: string | null = null;
-        
+
         if (isWebcamActive) {
           console.log('Webcam active, attempting to capture frame...');
           frameData = await this.webcamService.captureFrame();
           console.log('Frame captured:', frameData ? 'Successfully captured frame' : 'Failed to capture frame');
-          
+
           // Log the first 100 chars of the base64 string to avoid console spam
           if (frameData) {
             console.log('Frame data preview:', frameData.substring(0, 100) + '...');
@@ -181,5 +197,62 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch (error) {
       console.error('Error sending audio message:', error);
     }
+  }
+
+  async handleAudioPlayback(message: ChatMessage): Promise<void> {
+    try {
+      const isCurrentlyPlaying = this.isPlayingAudio(message);
+      console.log('Handle audio playback:', {
+        messageText: message.text?.substring(0, 50),
+        isCurrentlyPlaying,
+        isAudioPlaying: this.isAudioPlaying,
+        currentPlayingMessage: this.currentlyPlayingMessage?.text?.substring(0, 50)
+      });
+
+      // If this message is currently playing, stop it
+      if (isCurrentlyPlaying) {
+        console.log('Stopping current message playback');
+        await this.audioService.stopPlayback();
+        return;
+      }
+
+      // Set the new message as current before starting playback
+      // This ensures the UI updates immediately
+      const previousMessage = this.currentlyPlayingMessage;
+      this.currentlyPlayingMessage = null;
+      this.cdr.markForCheck();
+      // If another message is playing, stop it first
+      if (previousMessage) {
+        console.log('Stopping previous message before playing new one');
+        try {
+          await this.audioService.stopPlayback();
+          // Small delay to ensure audio has stopped
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          console.error('Error stopping previous audio:', error);
+          // Restore previous state if stop failed
+          this.currentlyPlayingMessage = previousMessage;
+          this.cdr.markForCheck();
+          return;
+        }
+      }
+
+      // Start playing the new message
+      console.log('Starting new message playback');
+      this.currentlyPlayingMessage = message;
+      await this.audioService.playAudio(message.audioData!);
+      
+    } catch (error) {
+      console.error('Error handling audio playback:', error);
+      this.currentlyPlayingMessage = null;
+      this.isAudioPlaying = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  isPlayingAudio(message: ChatMessage): boolean {
+    const isPlaying = this.currentlyPlayingMessage === message && this.isAudioPlaying;
+
+    return isPlaying;
   }
 } 

@@ -36,12 +36,19 @@
 
             <!-- Audio indicator if present -->
             <div *ngIf="message.audioData" class="mt-2 flex items-center gap-2">
-              <button (click)="audioService.playAudio(message.audioData!)"
-                class="flex items-center gap-2 px-3 py-1 text-sm bg-slate-300 dark:bg-slate-500 rounded-full hover:bg-slate-400 dark:hover:bg-slate-400 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <button (click)="handleAudioPlayback(message)"
+                class="flex items-center gap-2 px-3 py-1 text-sm bg-slate-300 dark:bg-slate-500 rounded-full hover:bg-slate-400 dark:hover:bg-slate-400 transition-colors"
+                [class.bg-red-500]="isPlayingAudio(message)"
+                [class.dark:bg-red-600]="isPlayingAudio(message)"
+                [class.hover:bg-red-600]="isPlayingAudio(message)"
+                [class.dark:hover:bg-red-700]="isPlayingAudio(message)">
+                <svg *ngIf="!isPlayingAudio(message)" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
                 </svg>
-                <span>Play Audio</span>
+                <svg *ngIf="isPlayingAudio(message)" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 002 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 002 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ isPlayingAudio(message) ? 'Stop' : 'Play Audio' }}</span>
               </button>
             </div>
 
