@@ -4,7 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WebcamPreviewComponent } from '../../shared/components/webcam-preview/webcam-preview.component';
 import { SignalRService, ChatMessage } from '../../core/services/signalr.service';
-import { Subject } from 'rxjs';
+import { WebcamService } from '../../core/services/webcam.service';
+import { Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 @Component({
@@ -25,7 +26,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
 
   constructor(
     private signalRService: SignalRService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private webcamService: WebcamService
   ) {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   }
@@ -107,31 +109,50 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  sendMessage() {
+  async sendMessage() {
     if (this.messageInput.trim() && this.isConnected) {
-      const message: ChatMessage = {
-        text: this.messageInput.trim(),
-        timestamp: new Date(),
-        isFromUser: true
-      };
-
-      // Add message to local list immediately
-      this.messages.push(message);
-      this.messageInput = '';
-      this.cdr.markForCheck();
-      // Ensure view is updated before scrolling
-      this.cdr.detectChanges();
-      this.scrollToBottom();
-
-      // Send message through SignalR
-      this.signalRService.sendMessage(message.text).subscribe({
-        error: (error) => {
-          console.error('Chat: Failed to send message:', error);
-          // Optionally: Remove message from list if send failed
-          this.messages = this.messages.filter(m => m !== message);
-          this.cdr.markForCheck();
+      try {
+        // Try to capture frame if webcam is active
+        const isWebcamActive = await firstValueFrom(this.webcamService.isStreamActive$);
+        let frameData: string | null = null;
+        
+        if (isWebcamActive) {
+          console.log('Webcam active, attempting to capture frame...');
+          frameData = await this.webcamService.captureFrame();
+          console.log('Frame captured:', frameData ? 'Successfully captured frame' : 'Failed to capture frame');
+          
+          // Log the first 100 chars of the base64 string to avoid console spam
+          if (frameData) {
+            console.log('Frame data preview:', frameData.substring(0, 100) + '...');
+          }
+        } else {
+          console.log('Webcam not active, skipping frame capture');
         }
-      });
+
+        const message: ChatMessage = {
+          text: this.messageInput.trim(),
+          timestamp: new Date(),
+          isFromUser: true
+        };
+
+        // Add message to local list immediately
+        this.messages.push(message);
+        this.messageInput = '';
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        this.scrollToBottom();
+
+        // Send message through SignalR
+        this.signalRService.sendMessage(message.text).subscribe({
+          error: (error) => {
+            console.error('Chat: Failed to send message:', error);
+            this.messages = this.messages.filter(m => m !== message);
+            this.cdr.markForCheck();
+          }
+        });
+      } catch (error) {
+        console.error('Error in sendMessage:', error);
+      }
     }
   }
 } 
