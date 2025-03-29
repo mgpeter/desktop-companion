@@ -33,10 +33,12 @@ actions:
          ├── ServoSkull.sln
          ├── ServoSkull.AppHost/       # Aspire host application
          ├── ServoSkull.ServiceDefaults/ # Shared Aspire configuration
-         ├── ServoSkull.WebApp/        # Blazor Frontend
-         ├── ServoSkull.WebApi/        # Backend API
-         ├── ServoSkull.Core/          # Core business logic
-         ├── ServoSkull.Data/          # Data access layer
+         ├── ServoSkull.Web/        # Blazor Frontend
+         ├── ServoSkull.Angular/        # Angular Frontend
+         ├── ServoSkull.ApiService/        # Backend API
+         ├── ServoSkull.Core/           # Core business logic
+         ├── ServoSkull.Data/           # Data access layer
+         ├── ServoSkull.Infrastructure/ # Infrastructure and integration services, including OpenAI integration
          ├── ServoSkull.Dto/           # Data transfer objects
          └── ServoSkull.{ProjectName}/ # Additional projects following convention
          └── ServoSkull.{ProjectName}.Tests/ # Additional projects following convention
@@ -51,7 +53,7 @@ actions:
       3. Common Project Types:
          - *.AppHost - Aspire orchestration
          - *.ServiceDefaults - Shared Aspire configuration
-         - *.WebApp/WebApi - Frontend/Backend
+         - *.Web/Angular/ApiService - Frontend/Backend
          - *.Core/Data/Dto - Business/Data layers
          - *.Services - Shared services
          - *.Tests - Test projects

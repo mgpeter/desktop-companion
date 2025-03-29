@@ -193,159 +193,19 @@ graph TD
    cd desktop-companion
    ```
 
-2. Start the Aspire host (this will start all backend services):
+2. Setup user secrets
+
+   ```bash
+   dotnet user-secrets init
+   dotnet user-secrets set "OpenAI:ApiKey" "<your-api-key>"
+   ```
+
+3. Start the Aspire host (this will start all backend services):
 
    ```bash
    cd ServoSkull.AppHost
    dotnet run
    ```
-
-## Communication Protocol
-
-### Overview
-The application uses a hybrid communication approach:
-- REST endpoints for initiating interactions and sending data
-- Server-Sent Events (SSE) for real-time status updates and streaming responses
-- WebSocket for continuous audio streaming (future enhancement)
-
-### Flow Sequence
-1. Frontend detects voice activity and starts recording
-2. On speech completion (silence detection):
-   - Captures latest video frame(s)
-   - Packages audio and frames
-   - Initiates interaction with backend
-3. Backend processes input and streams updates
-4. Frontend receives and plays response
-
-## API Endpoints
-
-### Interaction Endpoints
-
-#### POST /api/interaction/start
-Initiates a new interaction session.
-```json
-{
-  "sessionId": "uuid",
-  "timestamp": "2024-03-28T14:37:00Z",
-  "settings": {
-    "responseStyle": "sarcastic|helpful|angry",
-    "audioQuality": "high|medium|low"
-  }
-}
-```
-Response:
-```json
-{
-  "sessionId": "uuid",
-  "eventStreamUrl": "/api/interaction/events/{sessionId}",
-  "status": "ready"
-}
-```
-
-#### POST /api/interaction/{sessionId}/input
-Sends user input for processing.
-```json
-{
-  "audio": {
-    "format": "webm|wav",
-    "data": "<base64>",
-    "duration": 2.5
-  },
-  "frames": [
-    {
-      "timestamp": "2024-03-28T14:37:00Z",
-      "data": "<base64>",
-      "format": "jpeg",
-      "quality": 0.8
-    }
-  ],
-  "metadata": {
-    "deviceInfo": {
-      "camera": "Built-in Webcam",
-      "microphone": "Built-in Mic"
-    }
-  }
-}
-```
-
-#### GET /api/interaction/events/{sessionId}
-SSE endpoint for receiving real-time updates.
-
-Event Types:
-```typescript
-interface ProcessingUpdate {
-  type: 'processing';
-  stage: 'audio-transcription' | 'image-analysis' | 'response-generation' | 'speech-synthesis';
-  progress: number;
-  message: string;
-}
-
-interface TranscriptionComplete {
-  type: 'transcription';
-  text: string;
-  confidence: number;
-}
-
-interface ResponseReady {
-  type: 'response';
-  text: string;
-  audioUrl: string;
-  emotions: {
-    tone: string;
-    confidence: number;
-  };
-}
-
-interface ErrorEvent {
-  type: 'error';
-  code: string;
-  message: string;
-  recoverable: boolean;
-}
-```
-
-Example SSE Stream:
-```
-event: processing
-data: {"stage": "audio-transcription", "progress": 0.3, "message": "Transcribing audio..."}
-
-event: transcription
-data: {"text": "What's the status of the project?", "confidence": 0.95}
-
-event: processing
-data: {"stage": "response-generation", "progress": 0.6, "message": "Generating response..."}
-
-event: response
-data: {"text": "By the Omnissiah's grace, your project appears to be...", "audioUrl": "/api/audio/response/123"}
-```
-
-#### GET /api/audio/response/{id}
-Retrieves generated audio response as a streaming audio file.
-- Content-Type: audio/mpeg
-- Transfer-Encoding: chunked
-
-### Error Handling
-
-All endpoints follow a consistent error response format:
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable message",
-    "details": {
-      "field": "specific_field",
-      "reason": "validation_failed"
-    }
-  }
-}
-```
-
-Common Error Codes:
-- `INVALID_INPUT`: Malformed request data
-- `PROCESSING_FAILED`: Backend processing error
-- `SERVICE_UNAVAILABLE`: External service unavailable
-- `SESSION_EXPIRED`: Interaction session timeout
-- `RATE_LIMITED`: Too many requests
 
 ### Performance Considerations
 

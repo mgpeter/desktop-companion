@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServoSkull.AppHost", "ServoSkull.AppHost\ServoSkull.AppHost.csproj", "{C0EBD990-A325-4125-AF60-437B7DEB5380}"
 EndProject
@@ -11,6 +11,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServoSkull.Web", "ServoSkull.Web\ServoSkull.Web.csproj", "{A84A4AD8-1866-CEA5-42AF-421EF7AB5EA5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServoSkull.Tests", "ServoSkull.Tests\ServoSkull.Tests.csproj", "{9B197D43-9B68-BFAB-E158-863DAFCCD198}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServoSkull.Core", "ServoSkull.Core\ServoSkull.Core.csproj", "{56A9AA16-9F04-4686-968B-2118C06BB800}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServoSkull.Infrastructure", "ServoSkull.Infrastructure\ServoSkull.Infrastructure.csproj", "{6C21E223-1AD4-41AD-881C-DAC5F9C04412}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,14 @@ Global
 		{9B197D43-9B68-BFAB-E158-863DAFCCD198}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B197D43-9B68-BFAB-E158-863DAFCCD198}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B197D43-9B68-BFAB-E158-863DAFCCD198}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56A9AA16-9F04-4686-968B-2118C06BB800}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56A9AA16-9F04-4686-968B-2118C06BB800}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56A9AA16-9F04-4686-968B-2118C06BB800}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56A9AA16-9F04-4686-968B-2118C06BB800}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C21E223-1AD4-41AD-881C-DAC5F9C04412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C21E223-1AD4-41AD-881C-DAC5F9C04412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C21E223-1AD4-41AD-881C-DAC5F9C04412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C21E223-1AD4-41AD-881C-DAC5F9C04412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
