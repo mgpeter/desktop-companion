@@ -1,16 +1,11 @@
-import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, inject, PLATFORM_ID, ChangeDetectorRef, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WebcamPreviewComponent } from '../../shared/components/webcam-preview/webcam-preview.component';
-import { SignalRService } from '../../core/services/signalr.service';
-import { Subject, takeUntil } from 'rxjs';
-
-interface ChatMessage {
-  text: string;
-  timestamp: Date;
-  isFromUser: boolean;
-}
+import { SignalRService, ChatMessage } from '../../core/services/signalr.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-chat',
@@ -19,7 +14,9 @@ interface ChatMessage {
   templateUrl: './chat.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ChatComponent implements OnInit, OnDestroy {
+export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('messageContainer') private messageContainer?: ElementRef;
+  
   messageInput = '';
   messages: ChatMessage[] = [];
   isConnected = false;
@@ -31,6 +28,34 @@ export class ChatComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  }
+
+  ngAfterViewInit(): void {
+    // Initial scroll to bottom
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    if (this.messageContainer && this.isBrowser) {
+      try {
+        // Use requestAnimationFrame to ensure smooth scrolling after DOM updates
+        requestAnimationFrame(() => {
+          const element = this.messageContainer!.nativeElement;
+          // Add a small delay to ensure DOM has updated
+          setTimeout(() => {
+            element.scrollTop = element.scrollHeight;
+            // Double-check scroll position after a brief delay
+            setTimeout(() => {
+              if (element.scrollTop + element.clientHeight < element.scrollHeight) {
+                element.scrollTop = element.scrollHeight;
+              }
+            }, 50);
+          }, 10);
+        });
+      } catch (err) {
+        console.error('Error scrolling to bottom:', err);
+      }
+    }
   }
 
   ngOnInit(): void {
@@ -46,6 +71,18 @@ export class ChatComponent implements OnInit, OnDestroy {
         console.log('Chat: SignalR connection state changed:', connected);
         this.isConnected = connected;
         this.cdr.markForCheck();
+      });
+
+    // Listen for incoming messages
+    this.signalRService.onMessageReceived()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        console.log('Chat: Message received:', message);
+        this.messages.push(message);
+        this.cdr.markForCheck();
+        // Ensure view is updated before scrolling
+        this.cdr.detectChanges();
+        this.scrollToBottom();
       });
 
     // Start SignalR connection
@@ -71,19 +108,30 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   sendMessage() {
-    if (this.messageInput.trim()) {
+    if (this.messageInput.trim() && this.isConnected) {
       const message: ChatMessage = {
         text: this.messageInput.trim(),
         timestamp: new Date(),
         isFromUser: true
       };
-      
+
+      // Add message to local list immediately
       this.messages.push(message);
       this.messageInput = '';
       this.cdr.markForCheck();
+      // Ensure view is updated before scrolling
+      this.cdr.detectChanges();
+      this.scrollToBottom();
 
-      // TODO: Once we implement message handling in SignalRService, we'll call it here
-      console.log('Message sent:', message);
+      // Send message through SignalR
+      this.signalRService.sendMessage(message.text).subscribe({
+        error: (error) => {
+          console.error('Chat: Failed to send message:', error);
+          // Optionally: Remove message from list if send failed
+          this.messages = this.messages.filter(m => m !== message);
+          this.cdr.markForCheck();
+        }
+      });
     }
   }
 } 

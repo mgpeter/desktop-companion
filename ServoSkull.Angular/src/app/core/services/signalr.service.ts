@@ -1,8 +1,14 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import * as signalR from '@microsoft/signalr';
-import { BehaviorSubject, Observable, from, of, timer } from 'rxjs';
+import { BehaviorSubject, Observable, from, of, timer, Subject } from 'rxjs';
 import { map, catchError, retry, tap, timeout, takeUntil } from 'rxjs/operators';
+
+export interface ChatMessage {
+  text: string;
+  timestamp: Date;
+  isFromUser: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +18,7 @@ export class SignalRService {
   private connectionState = new BehaviorSubject<boolean>(false);
   private readonly isBrowser: boolean;
   private connecting = false;
+  private messageReceived = new Subject<ChatMessage>();
 
   constructor() {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -38,12 +45,22 @@ export class SignalRService {
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {
           const delayMs = Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
-          console.log(`SignalR: Next retry in ${delayMs}ms`);
+          console.log(`SignalR: Next retry in ${delayMs}ms, previous attempts: ${retryContext.previousRetryCount}`);
           return delayMs;
         }
       })
       .configureLogging(signalR.LogLevel.Debug)
       .build();
+
+    // Set up message handler
+    this.hubConnection.on('ReceiveResponse', (message: string) => {
+      console.log('SignalR: Received message:', message);
+      this.messageReceived.next({
+        text: message,
+        timestamp: new Date(),
+        isFromUser: false
+      });
+    });
 
     // Set up connection state change handler
     this.hubConnection.onreconnecting((error) => {
@@ -63,6 +80,25 @@ export class SignalRService {
       this.connectionState.next(false);
       this.connecting = false;
     });
+  }
+
+  public sendMessage(message: string): Observable<void> {
+    if (!this.hubConnection || !this.isConnected()) {
+      console.error('SignalR: Cannot send message - not connected');
+      return of(void 0);
+    }
+
+    return from(this.hubConnection.invoke('SendMessage', message)).pipe(
+      tap(() => console.log('SignalR: Message sent:', message)),
+      catchError(error => {
+        console.error('SignalR: Error sending message:', error);
+        throw error;
+      })
+    );
+  }
+
+  public onMessageReceived(): Observable<ChatMessage> {
+    return this.messageReceived.asObservable();
   }
 
   public startConnection(): Observable<boolean> {
