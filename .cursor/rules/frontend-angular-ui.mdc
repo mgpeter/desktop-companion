@@ -72,28 +72,10 @@ actions:
          ```
 
       4. Styling Standards:
-         - Use SCSS for styling
+         - Use Tailwind CSS for styling
          - BEM naming convention
          - Component-scoped styles
-         - Shared variables for theming
-         Example:
-         ```scss
-         // _variables.scss
-         $primary-color: #2c3e50;
-         $accent-color: #3498db;
-         
-         // component.scss
-         .webcam {
-           &__preview {
-             aspect-ratio: 16/9;
-             background: $primary-color;
-           }
-           &__controls {
-             display: flex;
-             gap: 1rem;
-           }
-         }
-         ```
+         - Shared tailwind variables for theming
 
       5. Performance Guidelines:
          - Use trackBy for *ngFor
@@ -166,7 +148,7 @@ examples:
       @Component({
         selector: 'app-webcam',
         templateUrl: './webcam.component.html',
-        styleUrls: ['./webcam.component.scss'],
+        styleUrls: ['./webcam.component.css'],
         changeDetection: ChangeDetectionStrategy.OnPush
       })
       export class WebcamComponent implements OnInit, OnDestroy {

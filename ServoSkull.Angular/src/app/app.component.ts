@@ -9,7 +9,7 @@ import { WeatherForecasts } from '../dtos/weatherForecast';
   standalone: true,
   imports: [RouterOutlet, CommonModule],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
   title = 'ServoSkull.Angular';
