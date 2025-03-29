@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ServoSkull.Core.Abstractions.Clients;
 using ServoSkull.Core.Abstractions.Services;
+using ServoSkull.Core.Configuration;
 using ServoSkull.Core.Models.Api;
 
 namespace ServoSkull.Infrastructure.OpenAi;
@@ -9,20 +11,33 @@ public class OpenAIService : IAIService
 {
     private readonly IOpenAIClient _openAIClient;
     private readonly ILogger<OpenAIService> _logger;
+    private readonly OpenAIOptions _options;
 
     public OpenAIService(
         IOpenAIClient openAIClient,
-        ILogger<OpenAIService> logger)
+        ILogger<OpenAIService> logger,
+        IOptions<OpenAIOptions> options)
     {
         _openAIClient = openAIClient;
         _logger = logger;
+        _options = options.Value;
     }
 
     public async Task<string> ProcessMessageAsync(MultimodalRequest request)
     {
         try
         {
-            return await _openAIClient.ProcessMultimodalRequestAsync(request);
+            // Create a new request with the system prompt included
+            var enhancedRequest = new MultimodalRequest
+            {
+                Transcript = request.Transcript,
+                ImageData = request.ImageData,
+                PreviousContext = string.IsNullOrEmpty(request.PreviousContext)
+                    ? _options.SystemPrompt
+                    : $"{_options.SystemPrompt}\n\nConversation history:\n{request.PreviousContext}"
+            };
+
+            return await _openAIClient.ProcessMultimodalRequestAsync(enhancedRequest);
         }
         catch (Exception ex)
         {
@@ -38,11 +53,12 @@ public class OpenAIService : IAIService
             // Convert frame data to base64
             var base64Image = Convert.ToBase64String(frameData);
 
-            // Create request with empty transcript since this is image-only
+            // Create request with system prompt and image analysis directive
             var request = new MultimodalRequest
             {
-                Transcript = "Describe what you see in this image.",
-                ImageData = base64Image
+                Transcript = "Analyze this image with your servo-skull's augmented vision. What do your optical sensors detect?",
+                ImageData = base64Image,
+                PreviousContext = _options.SystemPrompt
             };
 
             return await _openAIClient.ProcessMultimodalRequestAsync(request);

@@ -9,7 +9,8 @@ using System.ClientModel;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-
+using Microsoft.Extensions.Options;
+using ServoSkull.Core.Configuration;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace ServoSkull.Infrastructure.OpenAi;
@@ -18,13 +19,15 @@ public class OpenAIClient : IOpenAIClient
 {
     private readonly ChatClient _chatClient;
     private readonly AudioClient _audioClient;
-    private readonly string _apiKey;
+    private readonly OpenAIOptions _options;
 
-    public OpenAIClient(IConfiguration configuration)
+    public OpenAIClient(IOptions<OpenAIOptions> options)
     {
-        _apiKey = configuration["OpenAI:ApiKey"] ?? throw new ArgumentNullException("OpenAI:ApiKey");
-        _chatClient = new ChatClient("gpt-4o", _apiKey);
-        _audioClient = new AudioClient("whisper-1", _apiKey);
+        _options = options.Value;
+        
+        string apiKey = _options.ApiKey ?? throw new ArgumentNullException(nameof(_options.ApiKey));
+        _chatClient = new ChatClient(_options.AssistantModel, apiKey);
+        _audioClient = new AudioClient(_options.WhisperModel, apiKey);
     }
 
     public async Task<string> ProcessMultimodalRequestAsync(MultimodalRequest request)

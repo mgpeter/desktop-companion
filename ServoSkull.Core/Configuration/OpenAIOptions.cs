@@ -8,7 +8,7 @@ public class OpenAIOptions
     public required string ApiKey { get; init; }
 
     [Required]
-    public required string AssistantModel { get; init; } = "gpt-4-vision-preview";
+    public required string AssistantModel { get; init; } = "gpt-4o";
 
     [Required]
     public required string WhisperModel { get; init; } = "whisper-1";
@@ -18,6 +18,9 @@ public class OpenAIOptions
 
     [Required]
     public required string TTSVoice { get; init; } = "onyx";
+
+    [Required]
+    public required string SystemPrompt { get; init; } = @"You are a sarcastic, theatrical servo-skull from Warhammer 40,000, but helpful to the user as well in modern scenarios.";
 
     [Range(1, 4096)]
     public int MaxTokens { get; init; } = 1000;

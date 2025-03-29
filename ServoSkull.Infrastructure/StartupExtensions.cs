@@ -19,26 +19,10 @@ public static class StartupExtensions
         // Add configuration
         services.Configure<OpenAIOptions>(configuration.GetSection("OpenAI"));
 
-
         services.AddScoped<IOpenAIClient, OpenAIClient>();
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddScoped<IAIService, OpenAIService>();
 
         return services;
-    }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .WaitAndRetryAsync(3, retryAttempt =>
-                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-    }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
     }
 }
