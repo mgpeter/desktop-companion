@@ -13,9 +13,11 @@ import { firstValueFrom } from 'rxjs';
   template: `
     <button
       (click)="toggleRecording()"
-      [class.bg-red-500]="isRecording$ | async"
-      [class.text-white]="isRecording$ | async"
-      class="relative flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      [ngClass]="{
+        'bg-red-500 hover:bg-red-600 text-white border-red-500': isRecording$ | async,
+        'hover:bg-gray-200 dark:hover:bg-gray-700': !(isRecording$ | async)
+      }"
+      class="relative flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
       [attr.aria-label]="(isRecording$ | async) ? 'Stop recording' : 'Start recording'"
     >
       <!-- Microphone icon -->
