@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { WebcamPreviewComponent } from '../../shared/components/webcam-preview/webcam-preview.component';
 import { SignalRService, ChatMessage } from '../../core/services/signalr.service';
 import { WebcamService } from '../../core/services/webcam.service';
+import { AudioService } from '../../core/services/audio.service';
 import { Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AudioControlsComponent } from '../../shared/components/audio-controls/audio-controls.component';
@@ -33,7 +34,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private signalRService: SignalRService,
     private cdr: ChangeDetectorRef,
-    private webcamService: WebcamService
+    private webcamService: WebcamService,
+    public audioService: AudioService
   ) {
     this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   }

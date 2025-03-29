@@ -58,4 +58,18 @@ public class OpenAIService : IAIService
             throw;
         }
     }
+
+    public async Task<string> GenerateSpeechAsync(string text)
+    {
+        try
+        {
+            var audioData = await _openAIClient.GenerateSpeechAsync(text);
+            return Convert.ToBase64String(audioData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate speech for text: {Text}", text);
+            throw;
+        }
+    }
 } 

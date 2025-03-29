@@ -9,7 +9,7 @@ export interface ChatMessage {
   timestamp: Date;
   isFromUser: boolean;
   imageData?: string;
-  audioData?: string;
+  audioData?: string; // Base64 encoded audio data
 }
 
 @Injectable({
@@ -56,17 +56,18 @@ export class SignalRService {
       .build();
 
     // Set up message handler
-    this.hubConnection.on('ReceiveResponse', (message: string) => {
-      console.log('SignalR: Received message:', message);
+    this.hubConnection.on('ReceiveResponse', (message: string, audioData?: string) => {
+      console.log('SignalR: Received message:', { text: message, hasAudio: !!audioData });
       this.messageReceived.next({
         text: message,
         timestamp: new Date(),
-        isFromUser: false
+        isFromUser: false,
+        audioData: audioData
       });
     });
 
     this.hubConnection.on('ReceiveTranscription', (audioData: string) => {
-      console.log('SignalR: Received audio response:', audioData);
+      console.log('SignalR: Received audio transcription:', audioData);
       this.transcriptReceived.next(audioData);
     });
 

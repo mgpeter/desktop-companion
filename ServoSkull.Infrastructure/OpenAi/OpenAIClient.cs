@@ -19,6 +19,7 @@ namespace ServoSkull.Infrastructure.OpenAi;
 public class OpenAIClient : IOpenAIClient
 {
     private readonly ChatClient _chatClient;
+    private readonly AudioClient _transcribeClient;
     private readonly AudioClient _audioClient;
     private readonly OpenAIOptions _options;
 
@@ -28,7 +29,8 @@ public class OpenAIClient : IOpenAIClient
         
         string apiKey = _options.ApiKey ?? throw new ArgumentNullException(nameof(_options.ApiKey));
         _chatClient = new ChatClient(_options.AssistantModel, apiKey);
-        _audioClient = new AudioClient(_options.WhisperModel, apiKey);
+        _audioClient = new AudioClient(_options.VoiceModel, apiKey);
+        _transcribeClient = new AudioClient(_options.TranscriptionModel, apiKey);
     }
 
     public async Task<string> ProcessMultimodalRequestAsync(MultimodalRequest request)
@@ -77,7 +79,7 @@ public class OpenAIClient : IOpenAIClient
     private static string StripDataUrlPrefix(string dataUrl)
     {
         const string prefix = "base64,";
-        int index = dataUrl.IndexOf(prefix);
+        int index = dataUrl.IndexOf(prefix, StringComparison.Ordinal);
         return index >= 0 ? dataUrl[(index + prefix.Length)..] : dataUrl;
     }
 
@@ -88,7 +90,7 @@ public class OpenAIClient : IOpenAIClient
             string base64Data = StripDataUrlPrefix(base64audioData);
             byte[] audioBytes = Convert.FromBase64String(base64Data);
             using var stream = new MemoryStream(audioBytes);
-            var result = await _audioClient.TranscribeAudioAsync(stream, "audio.webm");
+            var result = await _transcribeClient.TranscribeAudioAsync(stream, "audio.webm");
             return result.Value.Text ?? string.Empty;
         }
         catch (Exception ex)
@@ -101,8 +103,9 @@ public class OpenAIClient : IOpenAIClient
     {
         try
         {
-            using var memoryStream = new MemoryStream();
-            ClientResult<BinaryData>? result = await _audioClient.GenerateSpeechAsync(text, GeneratedSpeechVoice.Alloy);
+            var voice = new GeneratedSpeechVoice(_options.Voice.ToLower());
+            ClientResult<BinaryData>? result = await _audioClient.GenerateSpeechAsync(text, voice);
+            
             return result.Value.ToArray();
         }
         catch (Exception ex)

@@ -67,12 +67,16 @@ public class InteractionHub : Hub
             _sessionManager.AddMessage(connectionId, "user", message);
 
             // Process request with full context
-            var response = await _aiService.ProcessMessageAsync(request);
+            var textResponse = await _aiService.ProcessMessageAsync(request);
+
+            // Generate audio response
+            var audioResponse = await _aiService.GenerateSpeechAsync(textResponse);
 
             // Add assistant response to history
-            _sessionManager.AddMessage(connectionId, "assistant", response);
+            _sessionManager.AddMessage(connectionId, "assistant", textResponse);
 
-            await Clients.Caller.SendAsync("ReceiveResponse", response);
+            // Send both text and audio responses
+            await Clients.Caller.SendAsync("ReceiveResponse", textResponse, audioResponse);
         }
         catch (Exception ex)
         {

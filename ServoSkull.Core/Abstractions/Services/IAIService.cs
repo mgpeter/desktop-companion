@@ -20,4 +20,11 @@ public interface IAIService
     /// <param name="audioData">The raw audio data.</param>
     /// <returns>Transcription or analysis results if successful, null otherwise.</returns>
     Task<string?> ProcessAudioAsync(string base64);
+
+    /// <summary>
+    /// Generates speech audio from text using the configured TTS service.
+    /// </summary>
+    /// <param name="text">The text to convert to speech.</param>
+    /// <returns>The generated audio data as a base64 string.</returns>
+    Task<string> GenerateSpeechAsync(string text);
 } 

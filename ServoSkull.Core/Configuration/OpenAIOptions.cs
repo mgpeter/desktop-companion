@@ -11,16 +11,20 @@ public class OpenAIOptions
     public required string AssistantModel { get; init; }
 
     [Required]
-    public required string WhisperModel { get; init; }
+    public required string VoiceModel { get; init; }
 
     [Required]
-    public required string TTSModel { get; init; }
+    public required string TranscriptionModel { get; init; }
 
     [Required]
-    public required string TTSVoice { get; init; }
+    public required string Voice { get; init; }
 
     [Required]
     public required string SystemPrompt { get; init; }
+
+
+    [Required]
+    public required string VoicePrompt { get; init; }
 
     [Range(1, 4096)]
     public int MaxTokens { get; init; } = 1000;
