@@ -51,7 +51,7 @@ export class AudioService {
   private defaultConfig: AudioConfig = {
     sampleRate: 16000,
     channels: 1,
-    startThreshold: 0.2,
+    startThreshold: 0.24,
     stopThreshold: 0.15,
     silenceThreshold: 2000,
     smoothingTimeConstant: 0.8

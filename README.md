@@ -1,240 +1,395 @@
-# ServoSkull
+# Desktop Companion Application
 
-A desktop companion application that combines computer vision, speech recognition, and AI to create an interactive assistant with a Warhammer 40k personality.
+A modern Angular-based desktop companion application featuring voice-activated recording and webcam capabilities.
 
-## Overview
+## Features
 
-ServoSkull observes the user through their webcam and microphone, processing the input to provide context-aware, sarcastic responses in the style of a 40k servo-skull.
+### Voice-Activated Audio Recording
 
-### Core Features
+- Automatic voice detection and recording
+- Smart silence detection for auto-stopping
+- Configurable audio thresholds:
+  - Start threshold: 0.24 (24% volume)
+  - Stop threshold: 0.15 (15% volume)
+  - Silence timeout: 2000ms (2 seconds)
+- Real-time audio level monitoring
+- Support for multiple audio formats (webm, mp4, ogg, wav)
+- Error handling for various microphone states
 
-- Webcam frame capture and analysis
-- Voice activity detection and processing
-- AI-powered responses with character
-- Text-to-speech output
+### Webcam Integration
 
-## Architecture
+- Live webcam preview
+- Independent webcam stream management
+- Support for different camera resolutions
+- Proper resource cleanup and state management
 
-### Component Flow
+### Technical Features
+
+- Reactive state management using RxJS
+- Independent audio and video stream handling
+- Cleanup of media resources
+- Comprehensive error handling and logging
+- TypeScript type safety throughout
+
+## Setup
+
+### Prerequisites
+
+- Node.js (v22 or higher)
+- Angular CLI (v19)
+- Tailwind CSS v4
+- Modern browser with WebRTC support
+
+### Running the application
+
+```bash
+dotnet user-secrets init
+
+dotnet user-secrets set "OpenAI:ApiKey" "your-api-key-here"
+
+cd [repository-name]
+
+cd ServoSkull.Angular
+
+npm install
+
+cd ..
+
+dotnet run --project ServoSkull.AppHost
+```
+
+## .NET Aspire Integration
+
+The application uses .NET Aspire for cloud-ready distributed application development and orchestration.
+
+### App Host Structure
+
+```text
+ServoSkull.AppHost/              # Aspire host application
+├── Program.cs                   # Service orchestration
+└── appsettings.json            # Host configuration
+
+ServoSkull.ServiceDefaults/      # Shared service configurations
+├── Extensions.cs               # Service collection extensions
+└── OpenTelemetry.cs           # Telemetry configuration
+
+ServoSkull.ApiService/          # Backend API service
+└── Program.cs                 # API service entry point
+```
+
+### Development Workflow
+
+1. **Start the Aspire Host**:
+
+   ```bash
+   dotnet run --project ServoSkull.AppHost
+   ```
+
+   This will:
+   - Start the Aspire dashboard
+   - Launch the API service
+   - Configure service discovery
+   - Initialize telemetry collection
+
+2. **Access the Dashboard**:
+   - Open the dashboard URL in your browser
+   - Monitor service health
+   - View logs and telemetry
+   - Check service dependencies
+
+3. **Development Mode**:
+
+   ```bash
+   # Run with hot reload
+   dotnet watch run --project ServoSkull.AppHost
+   
+   # Run with detailed logging
+   dotnet run --project ServoSkull.AppHost --verbose
+   ```
+
+### Production Deployment
+
+For production deployment, Aspire provides:
+
+- Container orchestration
+- Environment-specific configurations
+- Health check endpoints
+- Metrics collection
+- Distributed tracing
+
+Configure production settings in `appsettings.Production.json`:
+
+```json
+{
+  "Aspire": {
+    "Telemetry": {
+      "Endpoint": "your-telemetry-endpoint",
+      "Protocol": "grpc"
+    },
+    "Resilience": {
+      "CircuitBreaker": {
+        "SamplingDuration": "00:00:10"
+      }
+    }
+  }
+}
+```
+
+### Monitoring and Debugging
+
+- Access the Aspire dashboard for:
+  - Service status and health
+  - Log aggregation
+  - Performance metrics
+  - Dependency mapping
+  - Configuration validation
+
+- Integrated logging with structured data:
+
+  ```csharp
+  logger.LogInformation("Service {ServiceName} started", serviceName);
+  ```
+
+- Health check endpoints:
+
+  ```bash
+  curl http://localhost:18888/health
+  ```
+
+## Usage
+
+### Audio Recording
+
+The audio service (`AudioService`) provides voice-activated recording with the following features:
+
+```typescript
+// Start monitoring for voice activity
+audioService.startMonitoring();
+
+// Subscribe to recording state
+audioService.monitorState$.subscribe(state => {
+  console.log('Recording state:', state);
+});
+
+// Handle recorded audio
+audioService.audioRecorded$.subscribe(blob => {
+  // Handle the recorded audio blob
+});
+
+// Stop monitoring
+audioService.stopMonitoring();
+```
+
+### Webcam
+
+The webcam service (`WebcamService`) manages camera streams:
+
+```typescript
+// Start webcam stream
+webcamService.startStream({
+  width: 640,
+  height: 480,
+  facingMode: 'user'
+});
+
+// Check stream status
+webcamService.isStreamActive$.subscribe(active => {
+  console.log('Stream active:', active);
+});
+
+// Stop webcam
+webcamService.stopStream();
+```
+
+## Configuration
+
+### Audio Settings
+
+```typescript
+interface AudioConfig {
+  sampleRate: number;      // Default: 16000
+  channels: number;        // Default: 1
+  startThreshold: number;  // Default: 0.24
+  stopThreshold: number;   // Default: 0.15
+  silenceThreshold: number; // Default: 2000ms
+  smoothingTimeConstant: number; // Default: 0.8
+}
+```
+
+### Webcam Settings
+
+```typescript
+interface WebcamConfig {
+  width: number;          // Default: 640
+  height: number;         // Default: 480
+  facingMode: 'user' | 'environment'; // Default: 'user'
+}
+```
+
+## System design
+
+### Frontend Services
+
+- `AudioService`: Handles voice detection and recording
+- `WebcamService`: Manages webcam streams
+- Both services follow Angular's dependency injection pattern
+
+### State Management
+
+- Uses RxJS BehaviorSubjects for state management
+- Provides Observable streams for reactive updates
+- Maintains clean separation of concerns
+
+### Error Handling
+
+- Comprehensive error handling for media devices
+- Detailed logging for debugging
+- User-friendly error messages
+
+### Diagrams
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant WebcamComponent
-    participant AudioComponent
-    participant StateService
-    participant ApiClient
-    participant ApiService
-    participant OpenAI
-    participant ImageAnalysis
+    participant UI
+    participant AudioService
+    participant WebcamService
+    participant SignalRService
+    participant AspireHost
+    participant Backend
 
-    User->>WebcamComponent: Activates Camera
-    WebcamComponent->>StateService: Update Camera State
-    
-    par Camera Stream
-        WebcamComponent->>WebcamComponent: Stream Video
-        WebcamComponent->>WebcamComponent: Capture Frame
-    and Audio Stream
-        AudioComponent->>AudioComponent: Monitor Audio
-        AudioComponent->>AudioComponent: VAD Detection
-        AudioComponent->>AudioComponent: Record Speech
+    User->>UI: Open Application
+    AspireHost->>Backend: Start Services
+    UI->>SignalRService: Initialize Connection
+    SignalRService->>Backend: Establish WebSocket
+
+    par Audio Stream
+        User->>UI: Enable Microphone
+        UI->>AudioService: Start Monitoring
+        AudioService->>AudioService: Setup Voice Detection
+        loop Voice Detection
+            AudioService->>AudioService: Monitor Audio Levels
+            alt Voice Detected
+                AudioService->>AudioService: Start Recording
+            else Silence Detected
+                AudioService->>AudioService: Stop Recording
+                AudioService->>SignalRService: Send Audio
+                SignalRService->>Backend: Process Audio
+            end
+        end
+    and Webcam Stream
+        User->>UI: Enable Camera
+        UI->>WebcamService: Start Stream
+        WebcamService->>WebcamService: Initialize Video
+        loop Frame Capture
+            WebcamService->>UI: Update Preview
+        end
     end
-
-    WebcamComponent->>StateService: Frame Captured
-    AudioComponent->>StateService: Audio Recorded
-    StateService->>ApiClient: Submit Input
-    
-    ApiClient->>ApiService: POST /api/input
-    
-    par Backend Processing
-        ApiService->>OpenAI: Transcribe Audio
-        ApiService->>ImageAnalysis: Analyze Frame
-    end
-    
-    OpenAI-->>ApiService: Speech Text
-    ImageAnalysis-->>ApiService: Scene Analysis
-    
-    ApiService->>OpenAI: Generate Response
-    OpenAI-->>ApiService: Response Text + Audio
-    
-    ApiService-->>ApiClient: Response Data
-    ApiClient-->>StateService: Update State
-    StateService-->>WebcamComponent: Update UI
-    StateService-->>AudioComponent: Play Response
-    WebcamComponent->>User: Display Response
-    AudioComponent->>User: Play Audio
-
 ```
 
-### Component Structure
+```mermaid
+flowchart TD
+    A[Start Audio Monitoring] --> B{Check Audio Level}
+    B -->|Level > Start Threshold| C[Start Recording]
+    B -->|Level <= Start Threshold| B
+    C --> D{Check Audio Level}
+    D -->|Level > Stop Threshold| D
+    D -->|Level <= Stop Threshold| E[Increment Silent Frames]
+    E --> F{Silent Frames > Threshold?}
+    F -->|No| D
+    F -->|Yes| G[Stop Recording]
+    G --> H[Emit Audio Blob]
+    H --> B
+```
 
 ```mermaid
 graph TD
-    A[App Module] --> B[Core Module]
-    A --> C[Features Module]
-    A --> D[Shared Module]
+    subgraph Frontend
+        A[App Component]
+        B[Audio Controls]
+        C[Webcam Controls]
+        D[Chat UI]
+        
+        subgraph Services
+            E[Audio Service]
+            F[Webcam Service]
+            G[SignalR Service]
+        end
+        
+        A --> B & C & D
+        B --> E
+        C --> F
+        D --> G
+    end
     
-    B --> BA[State Service]
-    B --> BB[API Client]
-    B --> BC[Auth Service]
+    subgraph Backend
+        H[Aspire Host]
+        I[API Service]
+        J[Service Defaults]
+        
+        H --> I
+        H --> J
+    end
     
-    C --> CA[Webcam Feature]
-    C --> CB[Audio Feature]
-    C --> CC[Chat Feature]
-    
-    CA --> CAA[Webcam Component]
-    CA --> CAB[Frame Service]
-    
-    CB --> CBA[Audio Component]
-    CB --> CBB[VAD Service]
-    
-    CC --> CCA[Chat Component]
-    CC --> CCB[Response Service]
-    
-    D --> DA[UI Components]
-    D --> DB[Pipes]
-    D --> DC[Directives]
+    G <--> I
 ```
 
-### Service Responsibilities
-
-#### Frontend Services
-
-- **StateService**: Manages application state using RxJS
-  - Camera status
-  - Audio status
-  - Processing states
-  - Response history
-
-- **ApiClient**: Handles API communication
-  - Request/response interceptors
-  - Error handling
-  - File uploads
-  - Response streaming
-
-- **FrameService**: Manages webcam operations
-  - Stream initialization
-  - Frame capture
-  - Quality settings
-  - Error handling
-
-- **VADService**: Handles voice activity
-  - Audio stream management
-  - Speech detection
-  - Recording control
-  - Buffer management
-
-#### Backend Services
-
-- **InputController**: Handles input processing
-  - File validation
-  - Request routing
-  - Response formatting
-
-- **AudioService**: Manages audio processing
-  - OpenAI Whisper integration
-  - Audio format conversion
-  - Speech-to-text processing
-
-- **VisionService**: Handles image analysis
-  - Frame processing
-  - Object detection
-  - Scene analysis
-
-- **ResponseService**: Generates responses
-  - Context analysis
-  - Response generation
-  - Text-to-speech conversion
-
-## Project Structure
-
-```text
-/
-├── .cursor/                  # Development rules and settings
-│   └── rules/               # Project-specific rules
-├── assets/                  # Shared assets
-│   ├── audio/              # Audio resources
-│   └── images/             # Image resources
-├── ServoSkull.AppHost/      # .NET Aspire Host
-│   └── Program.cs          # Service orchestration
-├── ServoSkull.ServiceDefaults/ # Shared service configurations
-├── ServoSkull.ApiService/   # .NET Backend
-│   ├── Controllers/         # API endpoints
-│   ├── Services/           # Business logic
-│   └── Models/             # Data models
-├── ServoSkull.Angular/      # Frontend
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/      # Core services
-│   │   │   ├── shared/    # Shared components
-│   │   │   └── features/  # Feature modules
-│   │   ├── assets/        # Angular-specific assets
-│   │   └── environments/  # Environment configurations
-│   └── .cursor/rules/     # Angular-specific rules
-└── docs/                  # Documentation
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Monitoring: startMonitoring()
+    Monitoring --> Recording: voiceDetected
+    Recording --> Monitoring: silenceDetected
+    Recording --> Processing: stopRecording()
+    Processing --> Monitoring: processingComplete
+    Monitoring --> Idle: stopMonitoring()
+    
+    state Monitoring {
+        [*] --> CheckingLevels
+        CheckingLevels --> CheckingLevels: levelBelowThreshold
+        CheckingLevels --> [*]: levelAboveThreshold
+    }
+    
+    state Recording {
+        [*] --> Active
+        Active --> CountingSilence: levelBelowThreshold
+        CountingSilence --> Active: levelAboveThreshold
+        CountingSilence --> [*]: silenceThresholdReached
+    }
 ```
 
-## Development
+```mermaid
+flowchart TD
+    A[Start Operation] --> B{Check Permissions}
+    B -->|Denied| C[Show Permission Error]
+    B -->|Granted| D{Initialize Device}
+    D -->|Success| E[Start Stream]
+    D -->|Failure| F[Show Device Error]
+    E --> G{Monitor Stream}
+    G -->|Error| H{Error Type}
+    H -->|Recoverable| I[Attempt Recovery]
+    H -->|Fatal| J[Stop Stream]
+    I -->|Success| G
+    I -->|Failure| J
+    J --> K[Cleanup Resources]
+    K --> L[Show Error Message]
+```
 
-### Prerequisites
+## Browser Support
 
-- .NET 9.0 SDK
-- Node.js 22+ and npm
-- Angular CLI 19+
-- Visual Studio 2022 or VS Code
-- Docker Desktop (for Aspire containers)
+- Chrome/Edge (recommended)
+- Firefox
+- Safari (limited support)
 
-### Quick Start
+## Known Limitations
 
-1. Clone and setup:
-
-   ```bash
-   git clone https://github.com/mgpeter/desktop-companion.git
-   cd desktop-companion
-   ```
-
-2. Setup user secrets
-
-   ```bash
-   dotnet user-secrets init
-   dotnet user-secrets set "OpenAI:ApiKey" "<your-api-key>"
-   ```
-
-3. Start the Aspire host (this will start all backend services):
-
-   ```bash
-   cd ServoSkull.AppHost
-   dotnet run
-   ```
-
-### Performance Considerations
-
-1. **Audio Processing**
-   - Maximum audio duration: 30 seconds
-   - Supported formats: WebM, WAV
-   - Recommended sample rate: 16kHz
-
-2. **Image Processing**
-   - Maximum frame size: 1920x1080
-   - Recommended format: JPEG
-   - Quality range: 0.7-0.9
-   - Maximum frames per input: 3
-
-3. **Response Times**
-   - Audio transcription: 1-3 seconds
-   - Response generation: 2-5 seconds
-   - Speech synthesis: 1-2 seconds
-
-4. **Rate Limiting**
-   - Maximum 30 interactions per minute
-   - Maximum 100 frames per minute
-   - Maximum 5 concurrent sessions per user
+- Audio recording requires explicit user permission
+- Webcam access requires HTTPS in production
+- Some browsers may have limited codec support
 
 ## Contributing
 
-1. Follow the development rules in `.cursor/rules/`
-2. Ensure tests pass
-3. Submit PRs with clear descriptions
+Contributions are welcome! Please read our contributing guidelines and submit pull requests to our repository.
 
 ## License
 
