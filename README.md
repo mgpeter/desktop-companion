@@ -31,7 +31,7 @@ The backend:
 - Record audio only when user is speaking
 - Capture webcam frame at the end of speech
 - Send audio + frame(s) to backend
-- Display and play assistant’s response
+- Display and play assistant's response
 
 **Key Libraries:**
 
@@ -225,3 +225,133 @@ Returns generated MP3 response.
 ---
 
 Let me know if you want this exported as a `.md` file, dropped into a README template, or split into smaller doc sections (API spec, architecture guide, GPT prompt library, etc.). Or shall we begin planning the **backend interfaces** next?
+
+# ServoSkull
+
+A desktop companion application that combines the power of .NET, Blazor, and Angular to create an intelligent assistant with computer vision capabilities.
+
+## Project Structure
+
+The project is split into multiple components:
+
+```
+ServoSkull/
+├── ServoSkull.Web/           # Blazor WebAssembly host application
+│   ├── Components/           # Blazor components
+│   ├── Services/             # Backend services
+│   └── wwwroot/             # Static web assets
+├── ServoSkull.Angular/       # Angular frontend application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/        # Core services and guards
+│   │   │   ├── shared/      # Shared components and utilities
+│   │   │   └── features/    # Feature modules (webcam, analysis, etc.)
+│   │   ├── assets/          # Static assets
+│   │   └── environments/    # Environment configurations
+│   └── .cursor/rules/       # Cursor development rules
+└── docs/                    # Documentation
+```
+
+## Architecture
+
+The application follows a hybrid architecture:
+
+1. **Blazor WebAssembly Host**
+   - Serves as the main application host
+   - Handles WebAssembly initialization
+   - Manages API routing and services
+
+2. **Angular Frontend**
+   - Modern, responsive user interface
+   - Feature-based module organization
+   - State management with NgRx
+   - Lazy-loaded modules for optimal performance
+
+3. **Integration Layer**
+   - WebAPI endpoints for Angular-Blazor communication
+   - Shared DTOs for type safety
+   - SignalR for real-time updates
+
+## Features
+
+- **Webcam Integration**
+  - Real-time video capture
+  - Frame analysis and processing
+  - ML.NET integration for object detection
+
+- **User Interface**
+  - Modern Angular Material design
+  - Responsive layout
+  - Accessibility compliant
+  - Dark/Light theme support
+
+- **Performance**
+  - Lazy loading of features
+  - Optimized asset delivery
+  - Client-side caching
+  - WebAssembly acceleration
+
+## Development Setup
+
+### Prerequisites
+
+- .NET 8.0 SDK
+- Node.js 18+ and npm
+- Angular CLI 17+
+- Visual Studio 2022 or VS Code
+
+### Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/servoskull.git
+   ```
+
+2. Start the Blazor host:
+   ```bash
+   cd ServoSkull.Web
+   dotnet run
+   ```
+
+3. Start the Angular development server:
+   ```bash
+   cd ServoSkull.Angular
+   npm install
+   ng serve
+   ```
+
+4. Open your browser to:
+   - Blazor Host: `https://localhost:5001`
+   - Angular Dev Server: `http://localhost:4200`
+
+### Development Rules
+
+The project follows strict development guidelines:
+
+- Angular development rules are in `.cursor/rules/frontend-angular-ui.mdc`
+- Blazor component rules are in `.cursor/rules/frontend-ui.mdc`
+- Git commit rules are in `.cursor/rules/git-commits.mdc`
+
+## Testing
+
+- Run Angular tests:
+  ```bash
+  cd ServoSkull.Angular
+  ng test
+  ```
+
+- Run Blazor tests:
+  ```bash
+  cd ServoSkull.Web
+  dotnet test
+  ```
+
+## Contributing
+
+1. Follow the development rules in `.cursor/rules/`
+2. Ensure tests pass
+3. Submit PRs with clear descriptions
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -1,0 +1,192 @@
+---
+description: Frontend Angular UI Rules
+globs: ServoSkull.Angular/**/*.{ts,js,css,scss,json,tsx,html}
+---
+# Angular UI Development Rules
+
+Rules for maintaining consistent and high-quality Angular UI code in ServoSkull.Angular.
+
+<rule>
+name: frontend_angular_ui
+description: Enforces Angular development standards and best practices
+filters:
+  - type: directory
+    pattern: "ServoSkull.Angular/**"
+  - type: file_extension
+    pattern: "\\.ts$|\\.html$|\\.scss$|\\.css$"
+
+actions:
+  - type: suggest
+    message: |
+      Angular Development Standards:
+
+      1. Project Structure:
+         - Feature-based module organization
+         - Lazy loading for feature modules
+         - Shared module for common components
+         - Core module for singleton services
+         Example:
+         ```
+         ServoSkull.Angular/
+         ├── src/
+         │   ├── app/
+         │   │   ├── core/           # Singleton services, guards
+         │   │   ├── shared/         # Shared components, pipes, directives
+         │   │   ├── features/       # Feature modules
+         │   │   │   ├── webcam/     # Webcam feature module
+         │   │   │   ├── analysis/   # Analysis feature module
+         │   │   └── └── settings/   # Settings feature module
+         │   ├── assets/
+         │   └── environments/
+         ```
+
+      2. Component Guidelines:
+         - Use OnPush change detection strategy
+         - Implement lifecycle hooks interfaces
+         - Keep components focused and small
+         - Use smart/dumb component pattern
+         Example:
+         ```typescript
+         @Component({
+           selector: 'app-webcam-preview',
+           changeDetection: ChangeDetectionStrategy.OnPush
+         })
+         export class WebcamPreviewComponent implements OnInit, OnDestroy {
+           @Input() streamActive: boolean;
+           @Output() frameCapture = new EventEmitter<string>();
+         }
+         ```
+
+      3. State Management:
+         - Use NgRx for complex state
+         - Follow Redux patterns
+         - Keep state immutable
+         - Use selectors for data access
+         Example:
+         ```typescript
+         export const selectWebcamState = createFeatureSelector<WebcamState>('webcam');
+         export const selectIsStreaming = createSelector(
+           selectWebcamState,
+           state => state.isStreaming
+         );
+         ```
+
+      4. Styling Standards:
+         - Use SCSS for styling
+         - BEM naming convention
+         - Component-scoped styles
+         - Shared variables for theming
+         Example:
+         ```scss
+         // _variables.scss
+         $primary-color: #2c3e50;
+         $accent-color: #3498db;
+         
+         // component.scss
+         .webcam {
+           &__preview {
+             aspect-ratio: 16/9;
+             background: $primary-color;
+           }
+           &__controls {
+             display: flex;
+             gap: 1rem;
+           }
+         }
+         ```
+
+      5. Performance Guidelines:
+         - Use trackBy for *ngFor
+         - Lazy load images and modules
+         - Implement virtual scrolling for long lists
+         - Use pure pipes for transformations
+         Example:
+         ```typescript
+         <div *ngFor="let frame of frames; trackBy: trackByFn">
+         
+         trackByFn(index: number, item: Frame): string {
+           return item.id;
+         }
+         ```
+
+      6. Testing Requirements:
+         - Unit tests for services and components
+         - E2E tests for critical paths
+         - Test coverage minimum 80%
+         Example:
+         ```typescript
+         describe('WebcamService', () => {
+           it('should handle stream initialization', () => {
+             // Test implementation
+           });
+         });
+         ```
+
+      7. Error Handling:
+         - Global error handler
+         - Proper error boundaries
+         - User-friendly error messages
+         Example:
+         ```typescript
+         @Injectable()
+         export class GlobalErrorHandler implements ErrorHandler {
+           handleError(error: Error) {
+             // Error handling logic
+           }
+         }
+         ```
+
+      8. Accessibility:
+         - ARIA labels and roles
+         - Keyboard navigation
+         - High contrast support
+         - Screen reader compatibility
+         Example:
+         ```html
+         <button 
+           aria-label="Capture frame"
+           (click)="captureFrame()"
+           [attr.disabled]="!isStreamActive">
+           Capture
+         </button>
+         ```
+
+examples:
+  - input: |
+      // Bad component structure
+      @Component({
+        selector: 'app-webcam',
+        template: `<div>{{data}}</div>`
+      })
+      export class WebcamComponent {
+        data: any;
+      }
+    output: |
+      // Good component structure
+      @Component({
+        selector: 'app-webcam',
+        templateUrl: './webcam.component.html',
+        styleUrls: ['./webcam.component.scss'],
+        changeDetection: ChangeDetectionStrategy.OnPush
+      })
+      export class WebcamComponent implements OnInit, OnDestroy {
+        @Input() config: WebcamConfig;
+        @Output() frameCapture = new EventEmitter<string>();
+        
+        ngOnInit(): void {
+          // Initialization logic
+        }
+        
+        ngOnDestroy(): void {
+          // Cleanup logic
+        }
+      }
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - angular
+    - frontend
+    - ui
+</rule> 
