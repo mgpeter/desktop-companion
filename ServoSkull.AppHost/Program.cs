@@ -7,4 +7,10 @@ builder.AddProject<Projects.ServoSkull_Web>("webfrontend")
     .WithReference(apiService)
     .WaitFor(apiService);
 
+builder.AddNpmApp("angular", "../ServoSkull.Angular")
+    .WithReference(apiService)
+    .WithHttpEndpoint(env: "PORT")
+    .WithExternalHttpEndpoints()
+    .WaitFor(apiService);
+
 builder.Build().Run();
