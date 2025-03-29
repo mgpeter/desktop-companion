@@ -65,7 +65,15 @@ export class WebcamService {
   stopStream(): void {
     const currentStream = this.stream.value;
     if (currentStream) {
-      currentStream.getTracks().forEach(track => track.stop());
+      // Only stop video tracks, not all tracks
+      currentStream.getVideoTracks().forEach(track => {
+        console.log('Stopping video track:', {
+          kind: track.kind,
+          label: track.label,
+          id: track.id
+        });
+        track.stop();
+      });
       this.stream.next(null);
     }
   }

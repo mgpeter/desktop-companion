@@ -51,9 +51,9 @@ export class AudioService {
   private defaultConfig: AudioConfig = {
     sampleRate: 16000,
     channels: 1,
-    startThreshold: 0.16,    // Increased to 12% - require clearer speech to start
-    stopThreshold: 0.09,     // Keep at 8% to maintain recording during softer speech
-    silenceThreshold: 2000,  // 1.5 seconds of silence
+    startThreshold: 0.2,
+    stopThreshold: 0.15,
+    silenceThreshold: 2000,
     smoothingTimeConstant: 0.8
   };
 
@@ -78,6 +78,12 @@ export class AudioService {
   startStream(config: Partial<AudioConfig> = {}): Observable<MediaStream> {
     const finalConfig = { ...this.defaultConfig, ...config };
     
+    console.log('Starting audio stream with config:', {
+      sampleRate: finalConfig.sampleRate,
+      channels: finalConfig.channels,
+      timestamp: new Date().toISOString()
+    });
+
     const constraints: MediaStreamConstraints = {
       audio: {
         sampleRate: finalConfig.sampleRate,
@@ -90,6 +96,21 @@ export class AudioService {
 
     return from(navigator.mediaDevices.getUserMedia(constraints)).pipe(
       tap(stream => {
+        // Verify we have audio tracks
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          throw new Error('No audio tracks found in the media stream');
+        }
+
+        console.log('Audio stream initialized:', {
+          tracks: audioTracks.map(track => ({
+            kind: track.kind,
+            label: track.label,
+            id: track.id,
+            state: track.readyState
+          }))
+        });
+
         this.ngZone.run(() => {
           this.stream.next(stream);
           this.setupMediaRecorder(stream);
@@ -97,7 +118,22 @@ export class AudioService {
         });
       }),
       catchError(error => {
-        console.error('Error accessing microphone:', error);
+        console.error('Error accessing microphone:', {
+          error,
+          name: error.name,
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Handle specific error cases
+        if (error.name === 'NotAllowedError') {
+          return throwError(() => new Error('Microphone access was denied. Please check your permission settings.'));
+        } else if (error.name === 'NotFoundError') {
+          return throwError(() => new Error('No microphone found. Please check your audio device connection.'));
+        } else if (error.name === 'NotReadableError') {
+          return throwError(() => new Error('Could not access microphone. It might be in use by another application.'));
+        }
+        
         return throwError(() => new Error('Could not access microphone. Please ensure you have granted audio permissions.'));
       })
     );
@@ -157,17 +193,33 @@ export class AudioService {
       console.log('Setting up audio analysis with config:', {
         startThreshold: config.startThreshold,
         stopThreshold: config.stopThreshold,
-        silenceThreshold: config.silenceThreshold
+        silenceThreshold: config.silenceThreshold,
+        hasStream: !!stream,
+        streamActive: stream?.active
       });
       
-      // Create new audio context if needed
+      // Create new audio context
       if (!this.audioContext || this.audioContext.state === 'closed') {
+        console.log('Creating new AudioContext');
         this.audioContext = new AudioContext();
       }
-      
-      // Resume audio context if suspended
+
+      // Always try to resume the context
       if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
+        console.log('Resuming suspended audio context');
+        this.audioContext.resume().catch(error => {
+          console.error('Error resuming audio context:', error);
+        });
+      }
+
+      // Clean up existing analyzer if it exists
+      if (this.analyzer) {
+        try {
+          this.analyzer.disconnect();
+          console.log('Disconnected existing analyzer');
+        } catch (error) {
+          console.warn('Error disconnecting existing analyzer:', error);
+        }
       }
       
       const source = this.audioContext.createMediaStreamSource(stream);
@@ -175,6 +227,12 @@ export class AudioService {
       this.analyzer.fftSize = 2048;
       this.analyzer.smoothingTimeConstant = config.smoothingTimeConstant;
       source.connect(this.analyzer);
+
+      console.log('Audio analysis setup complete:', {
+        contextState: this.audioContext.state,
+        analyzerConnected: true,
+        timestamp: new Date().toISOString()
+      });
 
       const bufferLength = this.analyzer.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
@@ -303,10 +361,71 @@ export class AudioService {
   startMonitoring(): void {
     console.log('Starting voice monitoring');
     
-    // Ensure audio context is resumed (needed due to autoplay policies)
+    // Enhanced stream validation
+    const currentStream = this.stream.value;
+    const needsNewStream = !currentStream || 
+                          !currentStream.active || 
+                          !currentStream.getAudioTracks().some(track => track.readyState === 'live') ||
+                          !this.audioContext ||
+                          this.audioContext.state === 'closed';
+
+    if (needsNewStream) {
+      console.log('Audio stream needs reinitialization:', {
+        hasStream: !!currentStream,
+        isActive: currentStream?.active,
+        audioTracks: currentStream?.getAudioTracks().map(t => ({
+          state: t.readyState,
+          label: t.label
+        })),
+        contextState: this.audioContext?.state
+      });
+
+      // Clean up existing resources before reinitializing
+      this.cleanupAudioResources();
+      
+      // Ensure we wait a bit before trying to reinitialize
+      setTimeout(() => {
+        this.startStream().subscribe({
+          next: () => {
+            console.log('Successfully reinitialized audio stream');
+            this.initializeMonitoring();
+          },
+          error: (error) => {
+            console.error('Failed to reinitialize audio stream:', error);
+            // Reset monitoring state on error
+            this.monitorState.next({
+              isMonitoring: false,
+              isRecording: false,
+              voiceDetected: false,
+              audioLevel: 0
+            });
+          }
+        });
+      }, 100); // Small delay to ensure proper cleanup
+      return;
+    }
+
+    this.initializeMonitoring();
+  }
+
+  private initializeMonitoring(): void {
+    // Resume audio context if suspended
     if (this.audioContext?.state === 'suspended') {
       console.log('Resuming audio context');
-      this.audioContext.resume();
+      this.audioContext.resume().catch(error => {
+        console.error('Error resuming audio context:', error);
+      });
+    }
+
+    // If audio context is closed or null, create a new one
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      console.log('Creating new audio context');
+      this.audioContext = new AudioContext();
+      
+      // Re-setup audio analysis if we have a stream
+      if (this.stream.value) {
+        this.setupAudioAnalysis(this.stream.value, this.defaultConfig);
+      }
     }
 
     this.monitorState.next({
@@ -323,6 +442,60 @@ export class AudioService {
     }
   }
 
+  private cleanupAudioResources(): void {
+    console.log('Cleaning up audio resources');
+
+    // Stop the audio check loop by setting monitoring to false
+    this.monitorState.next({
+      ...this.monitorState.value,
+      isMonitoring: false,
+      isRecording: false,
+      voiceDetected: false,
+      audioLevel: 0
+    });
+
+    // Clean up analyzer
+    if (this.analyzer) {
+      try {
+        this.analyzer.disconnect();
+        this.analyzer = null;
+        console.log('Analyzer disconnected and nullified');
+      } catch (error) {
+        console.warn('Error disconnecting analyzer:', error);
+      }
+    }
+
+    // Clean up audio context
+    if (this.audioContext) {
+      try {
+        if (this.audioContext.state !== 'closed') {
+          console.log('Closing audio context');
+          this.audioContext.close();
+        }
+        this.audioContext = null;
+        console.log('Audio context nullified');
+      } catch (error) {
+        console.warn('Error closing audio context:', error);
+      }
+    }
+
+    // Reset media recorder
+    if (this.mediaRecorder) {
+      try {
+        if (this.mediaRecorder.state === 'recording') {
+          this.mediaRecorder.stop();
+        }
+        this.mediaRecorder = null;
+        console.log('Media recorder nullified');
+      } catch (error) {
+        console.warn('Error cleaning up media recorder:', error);
+      }
+    }
+
+    this.audioChunks = [];
+    this.checkAudioLevel = null;
+  }
+
   stopMonitoring(): void {
     console.log('Stopping voice monitoring');
     
@@ -332,12 +505,17 @@ export class AudioService {
       this.silenceTimeout = null;
     }
     
-    // Stop recording if active and update state after it completes
-    if (this.monitorState.value.isRecording) {
-      this.stopRecordingInternal().catch(error => {
+    // Stop recording if active
+    const stopRecordingPromise = this.monitorState.value.isRecording ? 
+      this.stopRecordingInternal() : 
+      Promise.resolve();
+
+    stopRecordingPromise
+      .catch(error => {
         console.error('Error stopping recording during monitoring stop:', error);
-      }).finally(() => {
-        // Update monitor state after recording is stopped
+      })
+      .finally(() => {
+        // Update monitor state
         this.monitorState.next({
           isMonitoring: false,
           isRecording: false,
@@ -345,31 +523,9 @@ export class AudioService {
           audioLevel: 0
         });
 
-        // Suspend audio context to save resources
-        if (this.audioContext?.state === 'running') {
-          console.log('Suspending audio context');
-          this.audioContext.suspend().catch(error => {
-            console.error('Error suspending audio context:', error);
-          });
-        }
+        // Clean up audio resources
+        this.cleanupAudioResources();
       });
-    } else {
-      // If not recording, update state immediately
-      this.monitorState.next({
-        isMonitoring: false,
-        isRecording: false,
-        voiceDetected: false,
-        audioLevel: 0
-      });
-
-      // Suspend audio context to save resources
-      if (this.audioContext?.state === 'running') {
-        console.log('Suspending audio context');
-        this.audioContext.suspend().catch(error => {
-          console.error('Error suspending audio context:', error);
-        });
-      }
-    }
   }
 
   private startRecordingInternal(): void {
@@ -457,12 +613,24 @@ export class AudioService {
   }
 
   stopStream(): void {
+    console.log('Stopping audio stream');
     const currentStream = this.stream.value;
     if (currentStream) {
-      currentStream.getTracks().forEach(track => track.stop());
-      this.stream.next(null);
+      // Stop all audio tracks
+      currentStream.getAudioTracks().forEach(track => {
+        console.log('Stopping audio track:', {
+          kind: track.kind,
+          label: track.label,
+          id: track.id,
+          state: track.readyState
+        });
+        track.stop();
+      });
     }
-    this.mediaRecorder = null;
+    
+    // Clean up all resources
+    this.cleanupAudioResources();
+    this.stream.next(null);
   }
 
   async playAudio(base64Audio: string): Promise<void> {
