@@ -1,350 +1,374 @@
-# ServoSkull.NET v1.0 – Technical Specification
-
-## 🧠 Overview
-
-**ServoSkull.NET** is a Blazor-based, voice-enabled AI assistant powered by .NET 9 and OpenAI's audio APIs. It continuously observes the user via webcam and microphone, using **voice activity detection (VAD)** to determine when the user is speaking.
-
-When speech is detected and a sentence has likely ended, the app:
-
-- Captures a short audio clip
-- Captures a snapshot (or burst) of webcam frames
-- Sends both to the backend
-
-The backend:
-
-- Transcribes the audio using OpenAI Whisper
-- Analyzes the image(s)
-- Generates a sarcastic response in the voice of a 40k-style servo-skull
-- Converts the response to speech using OpenAI TTS
-- Sends the response (text + audio) back to the frontend
-
----
-
-## 🧱 Core Components
-
-### 🖥️ Frontend – Blazor WebAssembly or Server
-
-**Responsibilities:**
-
-- Capture webcam feed via HTML5 video
-- Detect voice activity via JS + VAD library
-- Record audio only when user is speaking
-- Capture webcam frame at the end of speech
-- Send audio + frame(s) to backend
-- Display and play assistant's response
-
-**Key Libraries:**
-
-- HTML5 `MediaRecorder` (audio capture)
-- JS VAD library (e.g., [`vad.js`](https://github.com/jarredsumner/vad.js))
-- JS `<canvas>` for frame capture
-- OpenAI TTS playback (MP3 via HTMLAudioElement)
-
----
-
-### ⚙️ Backend – ASP.NET Core (.NET 9)
-
-**Responsibilities:**
-
-- Accept audio + image payloads
-- Transcribe audio using OpenAI Whisper
-- Analyze image using ML.NET or external service
-- Generate context-aware response
-- Convert response to speech using OpenAI TTS
-- Return both to frontend
-
-**Service Modules:**
-
-- `SpeechToTextService` → Whisper API
-- `ImageAnalysisService` → ML or 3rd-party vision API
-- `ResponseService` → Combines inputs + generates text
-- `TextToSpeechService` → OpenAI TTS
-
----
-
-## 🔁 Application Flow (with VAD)
-
-```mermaid
-sequenceDiagram
-  participant User
-  participant BlazorApp
-  participant VAD
-  participant Backend
-  participant OpenAI_Whisper
-  participant ImageAI
-  participant ResponseService
-  participant OpenAI_TTS
-
-  User->>VAD: Talks
-  VAD->>BlazorApp: Trigger startRecording()
-  User->>BlazorApp: Speaks for ~5s
-  VAD->>BlazorApp: stopRecording() after silence
-  BlazorApp->>BlazorApp: Capture webcam frame
-  BlazorApp->>Backend: Send audio + frame
-
-  Backend->>OpenAI_Whisper: Transcribe audio
-  Backend->>ImageAI: Analyze frame
-  OpenAI_Whisper-->>Backend: "Meetings are draining me"
-  ImageAI-->>Backend: ["coffee mug", "cat", "keyboard"]
-
-  Backend->>ResponseService: Generate reply
-  ResponseService-->>Backend: "Perhaps the cat can take the next meeting."
-
-  Backend->>OpenAI_TTS: Convert to speech
-  OpenAI_TTS-->>Backend: MP3 audio
-
-  Backend-->>BlazorApp: Text + Audio
-  BlazorApp->>User: Display + play response
-```
-
----
-
-## 📦 Payload Format
-
-### Request to Backend
-
-```json
-{
-  "audio": "<binary audio blob>",
-  "frames": [
-    "data:image/jpeg;base64,..."
-  ],
-  "timestamp": "2025-03-28T14:37:00Z"
-}
-```
-
----
-
-## 📡 API Endpoints (OpenAPI-style)
-
-### `POST /api/input`
-
-Sends audio + frame(s) to backend for full processing.
-
-#### Request (multipart/form-data)
-
-- `file`: audio file (`.wav`, `.webm`, etc.)
-- `frames[]`: 1+ image strings (base64 or as image files)
-
-#### Response
-
-```json
-{
-  "text": "Perhaps the cat can take the next meeting.",
-  "audioUrl": "/api/audio/response/123456"
-}
-```
-
----
-
-### `GET /api/audio/response/{id}`
-
-Returns generated MP3 response.
-
-**Response:**
-
-- `Content-Type: audio/mpeg`
-- MP3 binary stream
-
----
-
-## 🔊 Audio Capture Logic (Frontend)
-
-- Use VAD library to monitor audio input in real time
-- Start recording on detected voice
-- Stop recording when:
-  - Silence ≥ 800ms
-  - OR max duration reached (~10s)
-- Debounce between recordings (~1s wait after send)
-- Capture webcam frame right at end of utterance
-
----
-
-## 🧠 GPT Prompt Guidelines
-
-### 🔍 For Spec Awareness
-
-> *"You are a technical assistant trained on the ServoSkull.NET spec. Use the defined architecture and component roles to guide all responses."*
-
----
-
-### 🧪 For Code
-
-> *"You are a .NET 9 and Blazor expert. Use idiomatic C# and async best practices. Match code to the architecture in the ServoSkull.NET spec."*
-
----
-
-### 🦾 For Personality
-
-> *"You are a cheeky, sarcastic, dramatic servo-skull from the Imperium. Your tone is clever, theatrical, and often condescending—but in a helpful way. Channel 40k flair in every reply."*
-
-**Examples:**
-
-- "Another sigh. Another meeting. Another cry for the sweet release of bolter fire."
-- "Your screen is as empty as your inbox after a productivity sprint."
-
----
-
-### 🎙️ For OpenAI TTS
-
-| Parameter       | Value                                        |
-|-----------------|----------------------------------------------|
-| Endpoint        | `/v1/audio/speech`                           |
-| Voice           | `onyx` (or custom fine-tuned voice)          |
-| Output format   | `mp3`                                        |
-| Prompt style    | Slightly British, smug, dramatic, sarcastic  |
-
-**Prompt Template:**
-> "Using a slightly British, sarcastic, smug servo-skull voice, say the following aloud:  
-> {generatedText}"
-
----
-
-## ✅ MVP Feature Checklist
-
-- [ ] VAD system using 3rd-party JS lib
-- [ ] Audio recording triggered by voice
-- [ ] Webcam frame capture on utterance end
-- [ ] Backend handling of audio + frames
-- [ ] OpenAI Whisper integration (STT)
-- [ ] Image analysis integration (ML.NET or API)
-- [ ] Response generation logic
-- [ ] OpenAI TTS response (MP3)
-- [ ] UI chat log + audio playback
-
----
-
-## 🧩 Future Enhancements
-
-- Facial emotion detection
-- Object tracking with multiple frame comparison
-- Role modes: Techpriest / Commissar / Medicae
-- Physical skull hardware mount + servo control
-- Custom voice cloning or ElevenLabs integration
-
----
-
-Let me know if you want this exported as a `.md` file, dropped into a README template, or split into smaller doc sections (API spec, architecture guide, GPT prompt library, etc.). Or shall we begin planning the **backend interfaces** next?
-
 # ServoSkull
 
-A desktop companion application that combines the power of .NET, Blazor, and Angular to create an intelligent assistant with computer vision capabilities.
+A desktop companion application that combines computer vision, speech recognition, and AI to create an interactive assistant with a Warhammer 40k personality.
 
-## Project Structure
+## Overview
 
-The project is split into multiple components:
+ServoSkull observes the user through their webcam and microphone, processing the input to provide context-aware, sarcastic responses in the style of a 40k servo-skull.
 
-```
-ServoSkull/
-├── ServoSkull.Web/           # Blazor WebAssembly host application
-│   ├── Components/           # Blazor components
-│   ├── Services/             # Backend services
-│   └── wwwroot/             # Static web assets
-├── ServoSkull.Angular/       # Angular frontend application
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/        # Core services and guards
-│   │   │   ├── shared/      # Shared components and utilities
-│   │   │   └── features/    # Feature modules (webcam, analysis, etc.)
-│   │   ├── assets/          # Static assets
-│   │   └── environments/    # Environment configurations
-│   └── .cursor/rules/       # Cursor development rules
-└── docs/                    # Documentation
-```
+### Core Features
+
+- Webcam frame capture and analysis
+- Voice activity detection and processing
+- AI-powered responses with character
+- Text-to-speech output
 
 ## Architecture
 
-The application follows a hybrid architecture:
+### Component Flow
 
-1. **Blazor WebAssembly Host**
-   - Serves as the main application host
-   - Handles WebAssembly initialization
-   - Manages API routing and services
+```mermaid
+sequenceDiagram
+    participant User
+    participant WebcamComponent
+    participant AudioComponent
+    participant StateService
+    participant ApiClient
+    participant ApiService
+    participant OpenAI
+    participant ImageAnalysis
 
-2. **Angular Frontend**
-   - Modern, responsive user interface
-   - Feature-based module organization
-   - State management with NgRx
-   - Lazy-loaded modules for optimal performance
+    User->>WebcamComponent: Activates Camera
+    WebcamComponent->>StateService: Update Camera State
+    
+    par Camera Stream
+        WebcamComponent->>WebcamComponent: Stream Video
+        WebcamComponent->>WebcamComponent: Capture Frame
+    and Audio Stream
+        AudioComponent->>AudioComponent: Monitor Audio
+        AudioComponent->>AudioComponent: VAD Detection
+        AudioComponent->>AudioComponent: Record Speech
+    end
 
-3. **Integration Layer**
-   - WebAPI endpoints for Angular-Blazor communication
-   - Shared DTOs for type safety
-   - SignalR for real-time updates
+    WebcamComponent->>StateService: Frame Captured
+    AudioComponent->>StateService: Audio Recorded
+    StateService->>ApiClient: Submit Input
+    
+    ApiClient->>ApiService: POST /api/input
+    
+    par Backend Processing
+        ApiService->>OpenAI: Transcribe Audio
+        ApiService->>ImageAnalysis: Analyze Frame
+    end
+    
+    OpenAI-->>ApiService: Speech Text
+    ImageAnalysis-->>ApiService: Scene Analysis
+    
+    ApiService->>OpenAI: Generate Response
+    OpenAI-->>ApiService: Response Text + Audio
+    
+    ApiService-->>ApiClient: Response Data
+    ApiClient-->>StateService: Update State
+    StateService-->>WebcamComponent: Update UI
+    StateService-->>AudioComponent: Play Response
+    WebcamComponent->>User: Display Response
+    AudioComponent->>User: Play Audio
 
-## Features
+```
 
-- **Webcam Integration**
-  - Real-time video capture
-  - Frame analysis and processing
-  - ML.NET integration for object detection
+### Component Structure
 
-- **User Interface**
-  - Modern Angular Material design
-  - Responsive layout
-  - Accessibility compliant
-  - Dark/Light theme support
+```mermaid
+graph TD
+    A[App Module] --> B[Core Module]
+    A --> C[Features Module]
+    A --> D[Shared Module]
+    
+    B --> BA[State Service]
+    B --> BB[API Client]
+    B --> BC[Auth Service]
+    
+    C --> CA[Webcam Feature]
+    C --> CB[Audio Feature]
+    C --> CC[Chat Feature]
+    
+    CA --> CAA[Webcam Component]
+    CA --> CAB[Frame Service]
+    
+    CB --> CBA[Audio Component]
+    CB --> CBB[VAD Service]
+    
+    CC --> CCA[Chat Component]
+    CC --> CCB[Response Service]
+    
+    D --> DA[UI Components]
+    D --> DB[Pipes]
+    D --> DC[Directives]
+```
 
-- **Performance**
-  - Lazy loading of features
-  - Optimized asset delivery
-  - Client-side caching
-  - WebAssembly acceleration
+### Service Responsibilities
 
-## Development Setup
+#### Frontend Services
+
+- **StateService**: Manages application state using RxJS
+  - Camera status
+  - Audio status
+  - Processing states
+  - Response history
+
+- **ApiClient**: Handles API communication
+  - Request/response interceptors
+  - Error handling
+  - File uploads
+  - Response streaming
+
+- **FrameService**: Manages webcam operations
+  - Stream initialization
+  - Frame capture
+  - Quality settings
+  - Error handling
+
+- **VADService**: Handles voice activity
+  - Audio stream management
+  - Speech detection
+  - Recording control
+  - Buffer management
+
+#### Backend Services
+
+- **InputController**: Handles input processing
+  - File validation
+  - Request routing
+  - Response formatting
+
+- **AudioService**: Manages audio processing
+  - OpenAI Whisper integration
+  - Audio format conversion
+  - Speech-to-text processing
+
+- **VisionService**: Handles image analysis
+  - Frame processing
+  - Object detection
+  - Scene analysis
+
+- **ResponseService**: Generates responses
+  - Context analysis
+  - Response generation
+  - Text-to-speech conversion
+
+## Project Structure
+
+```text
+/
+├── .cursor/                  # Development rules and settings
+│   └── rules/               # Project-specific rules
+├── assets/                  # Shared assets
+│   ├── audio/              # Audio resources
+│   └── images/             # Image resources
+├── ServoSkull.AppHost/      # .NET Aspire Host
+│   └── Program.cs          # Service orchestration
+├── ServoSkull.ServiceDefaults/ # Shared service configurations
+├── ServoSkull.ApiService/   # .NET Backend
+│   ├── Controllers/         # API endpoints
+│   ├── Services/           # Business logic
+│   └── Models/             # Data models
+├── ServoSkull.Angular/      # Frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/      # Core services
+│   │   │   ├── shared/    # Shared components
+│   │   │   └── features/  # Feature modules
+│   │   ├── assets/        # Angular-specific assets
+│   │   └── environments/  # Environment configurations
+│   └── .cursor/rules/     # Angular-specific rules
+└── docs/                  # Documentation
+```
+
+## Development
 
 ### Prerequisites
 
-- .NET 8.0 SDK
-- Node.js 18+ and npm
-- Angular CLI 17+
+- .NET 9.0 SDK
+- Node.js 22+ and npm
+- Angular CLI 19+
 - Visual Studio 2022 or VS Code
+- Docker Desktop (for Aspire containers)
 
-### Getting Started
+### Quick Start
 
-1. Clone the repository:
+1. Clone and setup:
+
    ```bash
-   git clone https://github.com/yourusername/servoskull.git
+   git clone https://github.com/mgpeter/desktop-companion.git
+   cd desktop-companion
    ```
 
-2. Start the Blazor host:
+2. Start the Aspire host (this will start all backend services):
+
    ```bash
-   cd ServoSkull.Web
+   cd ServoSkull.AppHost
    dotnet run
    ```
 
-3. Start the Angular development server:
-   ```bash
-   cd ServoSkull.Angular
-   npm install
-   ng serve
-   ```
+## Communication Protocol
 
-4. Open your browser to:
-   - Blazor Host: `https://localhost:5001`
-   - Angular Dev Server: `http://localhost:4200`
+### Overview
+The application uses a hybrid communication approach:
+- REST endpoints for initiating interactions and sending data
+- Server-Sent Events (SSE) for real-time status updates and streaming responses
+- WebSocket for continuous audio streaming (future enhancement)
 
-### Development Rules
+### Flow Sequence
+1. Frontend detects voice activity and starts recording
+2. On speech completion (silence detection):
+   - Captures latest video frame(s)
+   - Packages audio and frames
+   - Initiates interaction with backend
+3. Backend processes input and streams updates
+4. Frontend receives and plays response
 
-The project follows strict development guidelines:
+## API Endpoints
 
-- Angular development rules are in `.cursor/rules/frontend-angular-ui.mdc`
-- Blazor component rules are in `.cursor/rules/frontend-ui.mdc`
-- Git commit rules are in `.cursor/rules/git-commits.mdc`
+### Interaction Endpoints
 
-## Testing
+#### POST /api/interaction/start
+Initiates a new interaction session.
+```json
+{
+  "sessionId": "uuid",
+  "timestamp": "2024-03-28T14:37:00Z",
+  "settings": {
+    "responseStyle": "sarcastic|helpful|angry",
+    "audioQuality": "high|medium|low"
+  }
+}
+```
+Response:
+```json
+{
+  "sessionId": "uuid",
+  "eventStreamUrl": "/api/interaction/events/{sessionId}",
+  "status": "ready"
+}
+```
 
-- Run Angular tests:
-  ```bash
-  cd ServoSkull.Angular
-  ng test
-  ```
+#### POST /api/interaction/{sessionId}/input
+Sends user input for processing.
+```json
+{
+  "audio": {
+    "format": "webm|wav",
+    "data": "<base64>",
+    "duration": 2.5
+  },
+  "frames": [
+    {
+      "timestamp": "2024-03-28T14:37:00Z",
+      "data": "<base64>",
+      "format": "jpeg",
+      "quality": 0.8
+    }
+  ],
+  "metadata": {
+    "deviceInfo": {
+      "camera": "Built-in Webcam",
+      "microphone": "Built-in Mic"
+    }
+  }
+}
+```
 
-- Run Blazor tests:
-  ```bash
-  cd ServoSkull.Web
-  dotnet test
-  ```
+#### GET /api/interaction/events/{sessionId}
+SSE endpoint for receiving real-time updates.
+
+Event Types:
+```typescript
+interface ProcessingUpdate {
+  type: 'processing';
+  stage: 'audio-transcription' | 'image-analysis' | 'response-generation' | 'speech-synthesis';
+  progress: number;
+  message: string;
+}
+
+interface TranscriptionComplete {
+  type: 'transcription';
+  text: string;
+  confidence: number;
+}
+
+interface ResponseReady {
+  type: 'response';
+  text: string;
+  audioUrl: string;
+  emotions: {
+    tone: string;
+    confidence: number;
+  };
+}
+
+interface ErrorEvent {
+  type: 'error';
+  code: string;
+  message: string;
+  recoverable: boolean;
+}
+```
+
+Example SSE Stream:
+```
+event: processing
+data: {"stage": "audio-transcription", "progress": 0.3, "message": "Transcribing audio..."}
+
+event: transcription
+data: {"text": "What's the status of the project?", "confidence": 0.95}
+
+event: processing
+data: {"stage": "response-generation", "progress": 0.6, "message": "Generating response..."}
+
+event: response
+data: {"text": "By the Omnissiah's grace, your project appears to be...", "audioUrl": "/api/audio/response/123"}
+```
+
+#### GET /api/audio/response/{id}
+Retrieves generated audio response as a streaming audio file.
+- Content-Type: audio/mpeg
+- Transfer-Encoding: chunked
+
+### Error Handling
+
+All endpoints follow a consistent error response format:
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": {
+      "field": "specific_field",
+      "reason": "validation_failed"
+    }
+  }
+}
+```
+
+Common Error Codes:
+- `INVALID_INPUT`: Malformed request data
+- `PROCESSING_FAILED`: Backend processing error
+- `SERVICE_UNAVAILABLE`: External service unavailable
+- `SESSION_EXPIRED`: Interaction session timeout
+- `RATE_LIMITED`: Too many requests
+
+### Performance Considerations
+
+1. **Audio Processing**
+   - Maximum audio duration: 30 seconds
+   - Supported formats: WebM, WAV
+   - Recommended sample rate: 16kHz
+
+2. **Image Processing**
+   - Maximum frame size: 1920x1080
+   - Recommended format: JPEG
+   - Quality range: 0.7-0.9
+   - Maximum frames per input: 3
+
+3. **Response Times**
+   - Audio transcription: 1-3 seconds
+   - Response generation: 2-5 seconds
+   - Speech synthesis: 1-2 seconds
+
+4. **Rate Limiting**
+   - Maximum 30 interactions per minute
+   - Maximum 100 frames per minute
+   - Maximum 5 concurrent sessions per user
 
 ## Contributing
 
@@ -354,4 +378,4 @@ The project follows strict development guidelines:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
