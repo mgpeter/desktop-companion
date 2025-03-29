@@ -64,7 +64,7 @@
     <div class="flex gap-2">
       <input type="text" [(ngModel)]="messageInput" (keyup.enter)="sendMessage()" placeholder="Type a message..."
         class="flex-grow px-4 py-2 bg-white dark:bg-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <app-audio-controls (audioRecorded)="handleAudioRecorded($event)" class="flex items-center"></app-audio-controls>
+      <app-audio-controls class="flex items-center"></app-audio-controls>
       <button (click)="sendMessage()" [disabled]="!isConnected || !messageInput.trim()"
         class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
         Send

@@ -54,6 +54,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
         
         this.cdr.markForCheck();
       });
+
+    // Subscribe to recorded audio
+    this.audioService.audioRecorded$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(async audioBlob => {
+        console.log('Audio recording completed:', {
+          size: audioBlob.size,
+          type: audioBlob.type,
+          timestamp: new Date().toISOString()
+        });
+        
+        try {
+          await this.handleAudioRecorded(audioBlob);
+        } catch (error) {
+          console.error('Error handling recorded audio:', error);
+        }
+      });
   }
 
   ngAfterViewInit(): void {
@@ -206,10 +223,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async handleAudioRecorded(audioBlob: Blob): Promise<void> {
+    console.log('Handling recorded audio:', {
+      size: audioBlob.size,
+      type: audioBlob.type,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       await firstValueFrom(this.signalRService.sendAudioMessage(audioBlob));
+      console.log('Audio message sent successfully');
     } catch (error) {
       console.error('Error sending audio message:', error);
+      throw error; // Propagate error for handling in subscription
     }
   }
 

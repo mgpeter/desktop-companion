@@ -230,7 +230,9 @@ export class AudioService {
                 this.ngZone.run(() => {
                   if (this.monitorState.value.isRecording) {
                     console.log('Silence threshold reached, stopping recording');
-                    this.stopRecordingInternal();
+                    this.stopRecordingInternal().catch(error => {
+                      console.error('Error stopping recording after silence:', error);
+                    });
                   }
                 });
               }, config.silenceThreshold);
@@ -247,6 +249,7 @@ export class AudioService {
       console.log('Audio analysis setup complete');
     } catch (error) {
       console.error('Error setting up audio analysis:', error);
+      throw error; // Propagate setup errors
     }
   }
 
@@ -277,25 +280,50 @@ export class AudioService {
 
   stopMonitoring(): void {
     console.log('Stopping voice monitoring');
+    
+    // Clear any pending timeouts
     if (this.silenceTimeout) {
       clearTimeout(this.silenceTimeout);
+      this.silenceTimeout = null;
     }
     
+    // Stop recording if active and update state after it completes
     if (this.monitorState.value.isRecording) {
-      this.stopRecordingInternal();
-    }
+      this.stopRecordingInternal().catch(error => {
+        console.error('Error stopping recording during monitoring stop:', error);
+      }).finally(() => {
+        // Update monitor state after recording is stopped
+        this.monitorState.next({
+          isMonitoring: false,
+          isRecording: false,
+          voiceDetected: false,
+          audioLevel: 0
+        });
 
-    this.monitorState.next({
-      isMonitoring: false,
-      isRecording: false,
-      voiceDetected: false,
-      audioLevel: 0
-    });
+        // Suspend audio context to save resources
+        if (this.audioContext?.state === 'running') {
+          console.log('Suspending audio context');
+          this.audioContext.suspend().catch(error => {
+            console.error('Error suspending audio context:', error);
+          });
+        }
+      });
+    } else {
+      // If not recording, update state immediately
+      this.monitorState.next({
+        isMonitoring: false,
+        isRecording: false,
+        voiceDetected: false,
+        audioLevel: 0
+      });
 
-    // Suspend audio context to save resources
-    if (this.audioContext?.state === 'running') {
-      console.log('Suspending audio context');
-      this.audioContext.suspend();
+      // Suspend audio context to save resources
+      if (this.audioContext?.state === 'running') {
+        console.log('Suspending audio context');
+        this.audioContext.suspend().catch(error => {
+          console.error('Error suspending audio context:', error);
+        });
+      }
     }
   }
 
@@ -315,26 +343,65 @@ export class AudioService {
     this.isRecording.next(true);
   }
 
-  private async stopRecordingInternal(): Promise<void> {
-    console.log('Silence detected, stopping recording');
+  private stopRecordingInternal(): Promise<void> {
     if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
-      return;
+      console.debug('No active recording to stop');
+      return Promise.resolve();
     }
 
-    return new Promise((resolve, reject) => {
-      this.mediaRecorder!.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
-        this.audioChunks = [];
-        this.monitorState.next({
-          ...this.monitorState.value,
-          isRecording: false
+    console.log('Stopping recording:', {
+      state: this.mediaRecorder.state,
+      chunksCount: this.audioChunks.length,
+      timestamp: new Date().toISOString()
+    });
+
+    return new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        // Reset recording state immediately
+        this.ngZone.run(() => {
+          this.monitorState.next({
+            ...this.monitorState.value,
+            isRecording: false,
+            voiceDetected: false
+          });
+          this.isRecording.next(false);
         });
-        this.isRecording.next(false);
-        this.audioRecorded.next(audioBlob);
-        resolve();
       };
 
-      this.mediaRecorder!.stop();
+      try {
+        // Set up stop handler
+        this.mediaRecorder!.onstop = () => {
+          try {
+            const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+            console.log('Recording stopped:', {
+              size: audioBlob.size,
+              type: audioBlob.type,
+              chunksCount: this.audioChunks.length
+            });
+            
+            this.audioChunks = [];
+            cleanup();
+            
+            // Emit the recorded audio
+            this.ngZone.run(() => {
+              this.audioRecorded.next(audioBlob);
+            });
+            
+            resolve();
+          } catch (error) {
+            console.error('Error processing recorded audio:', error);
+            cleanup();
+            reject(error);
+          }
+        };
+
+        // Stop the recording
+        this.mediaRecorder!.stop();
+      } catch (error) {
+        console.error('Error stopping MediaRecorder:', error);
+        cleanup();
+        reject(error);
+      }
     });
   }
 
