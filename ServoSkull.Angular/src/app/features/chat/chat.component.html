@@ -28,7 +28,15 @@
                [ngClass]="message.isFromUser ? 
                  'bg-blue-500 text-white' : 
                  'bg-slate-200 dark:bg-slate-600 dark:text-white'">
-            {{ message.text }}
+            <!-- Message text -->
+            <p>{{ message.text }}</p>
+            
+            <!-- Image preview if present -->
+            <img *ngIf="message.imageData" 
+                 [src]="message.imageData" 
+                 class="mt-2 rounded-lg max-w-full h-auto" 
+                 alt="Message attachment"
+                 loading="lazy">
           </div>
           <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {{ message.timestamp | date:'shortTime' }}
@@ -37,20 +45,19 @@
       </div>
     </div>
 
-    <!-- Chat Input -->
+    <!-- Message Input -->
     <div class="flex gap-2">
       <input
         type="text"
-        placeholder="Type your message..."
-        class="flex-grow px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
         [(ngModel)]="messageInput"
         (keyup.enter)="sendMessage()"
-        [disabled]="!isConnected"
+        placeholder="Type a message..."
+        class="flex-grow px-4 py-2 bg-white dark:bg-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
       <button
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="sendMessage()"
-        [disabled]="!isConnected"
+        [disabled]="!isConnected || !messageInput.trim()"
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Send
       </button>

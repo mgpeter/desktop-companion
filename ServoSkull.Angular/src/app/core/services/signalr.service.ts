@@ -8,6 +8,7 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
   isFromUser: boolean;
+  imageData?: string;
 }
 
 @Injectable({
@@ -82,14 +83,14 @@ export class SignalRService {
     });
   }
 
-  public sendMessage(message: string): Observable<void> {
+  public sendMessage(message: string, imageData?: string): Observable<void> {
     if (!this.hubConnection || !this.isConnected()) {
       console.error('SignalR: Cannot send message - not connected');
       return of(void 0);
     }
 
-    return from(this.hubConnection.invoke('SendMessage', message)).pipe(
-      tap(() => console.log('SignalR: Message sent:', message)),
+    return from(this.hubConnection.invoke('SendMessage', message, imageData)).pipe(
+      tap(() => console.log('SignalR: Message sent:', { text: message, hasImage: !!imageData })),
       catchError(error => {
         console.error('SignalR: Error sending message:', error);
         throw error;

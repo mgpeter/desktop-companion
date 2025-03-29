@@ -46,30 +46,6 @@ public class OpenAIService : IAIService
         }
     }
 
-    public async Task<string?> ProcessVideoFrameAsync(byte[] frameData)
-    {
-        try
-        {
-            // Convert frame data to base64
-            var base64Image = Convert.ToBase64String(frameData);
-
-            // Create request with system prompt and image analysis directive
-            var request = new MultimodalRequest
-            {
-                Transcript = "Analyze this image with your servo-skull's augmented vision. What do your optical sensors detect?",
-                ImageData = base64Image,
-                PreviousContext = _options.SystemPrompt
-            };
-
-            return await _openAIClient.ProcessMultimodalRequestAsync(request);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process video frame");
-            throw;
-        }
-    }
-
     public async Task<string?> ProcessAudioAsync(byte[] audioData)
     {
         try

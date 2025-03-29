@@ -15,13 +15,6 @@ public interface IAIService
     Task<string> ProcessMessageAsync(MultimodalRequest request);
 
     /// <summary>
-    /// Processes a video frame and returns any detected information or insights.
-    /// </summary>
-    /// <param name="frameData">The raw video frame data.</param>
-    /// <returns>Analysis results if any information was detected, null otherwise.</returns>
-    Task<string?> ProcessVideoFrameAsync(byte[] frameData);
-
-    /// <summary>
     /// Processes an audio stream and returns the transcription or analysis results.
     /// </summary>
     /// <param name="audioData">The raw audio data.</param>

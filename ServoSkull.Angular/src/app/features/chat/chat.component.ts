@@ -132,7 +132,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
         const message: ChatMessage = {
           text: this.messageInput.trim(),
           timestamp: new Date(),
-          isFromUser: true
+          isFromUser: true,
+          imageData: frameData || undefined
         };
 
         // Add message to local list immediately
@@ -143,7 +144,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewInit {
         this.scrollToBottom();
 
         // Send message through SignalR
-        this.signalRService.sendMessage(message.text).subscribe({
+        this.signalRService.sendMessage(message.text, message.imageData).subscribe({
           error: (error) => {
             console.error('Chat: Failed to send message:', error);
             this.messages = this.messages.filter(m => m !== message);

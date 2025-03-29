@@ -48,7 +48,7 @@ public class InteractionHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task SendMessage(string message)
+    public async Task SendMessage(string message, string? imageData)
     {
         try
         {
@@ -59,7 +59,7 @@ public class InteractionHub : Hub
             var request = new MultimodalRequest
             {
                 Transcript = message,
-                ImageData = string.Empty,
+                ImageData = imageData ?? string.Empty,
                 PreviousContext = JsonSerializer.Serialize(recentMessages, _jsonOptions)
             };
 

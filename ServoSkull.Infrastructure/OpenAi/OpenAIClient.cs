@@ -43,7 +43,8 @@ public class OpenAIClient : IOpenAIClient
 
             if (!string.IsNullOrEmpty(request.ImageData))
             {
-                BinaryData binaryData = BinaryData.FromBytes(Convert.FromBase64String(request.ImageData));
+                string base64Data = StripDataUrlPrefix(request.ImageData);
+                BinaryData binaryData = BinaryData.FromBytes(Convert.FromBase64String(base64Data));
                 messages.Add(new UserChatMessage(new[]
                 {
                     ChatMessageContentPart.CreateTextPart(request.Transcript),
@@ -67,6 +68,16 @@ public class OpenAIClient : IOpenAIClient
         {
             throw new Exception($"Error processing multimodal request: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>
+    /// Strips the data URL prefix (e.g. "data:image/png;base64,") from a base64 image string
+    /// </summary>
+    private static string StripDataUrlPrefix(string dataUrl)
+    {
+        const string prefix = "base64,";
+        int index = dataUrl.IndexOf(prefix);
+        return index >= 0 ? dataUrl[(index + prefix.Length)..] : dataUrl;
     }
 
     public async Task<string> TranscribeAudioAsync(byte[] audioData)
