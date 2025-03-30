@@ -45,13 +45,16 @@ A modern Angular-based desktop companion application featuring voice-activated r
 ```bash
 npm install -g @tailwindcss/cli
 
-dotnet user-secrets init
-
-dotnet user-secrets set "OpenAI:ApiKey" "your-api-key-here"
 
 cd [repository-name]
 
-cd ServoSkull.Angular
+cd ServoSkull.ApiService
+
+dotnet user-secrets init
+
+dotnet user-secrets set "OpenAI:ApiKey" "<your-api-key-here>"
+
+cd ../ServoSkull.Angular
 
 npm install
 
@@ -157,76 +160,6 @@ Configure production settings in `appsettings.Production.json`:
   ```bash
   curl http://localhost:18888/health
   ```
-
-## Usage
-
-### Audio Recording
-
-The audio service (`AudioService`) provides voice-activated recording with the following features:
-
-```typescript
-// Start monitoring for voice activity
-audioService.startMonitoring();
-
-// Subscribe to recording state
-audioService.monitorState$.subscribe(state => {
-  console.log('Recording state:', state);
-});
-
-// Handle recorded audio
-audioService.audioRecorded$.subscribe(blob => {
-  // Handle the recorded audio blob
-});
-
-// Stop monitoring
-audioService.stopMonitoring();
-```
-
-### Webcam
-
-The webcam service (`WebcamService`) manages camera streams:
-
-```typescript
-// Start webcam stream
-webcamService.startStream({
-  width: 640,
-  height: 480,
-  facingMode: 'user'
-});
-
-// Check stream status
-webcamService.isStreamActive$.subscribe(active => {
-  console.log('Stream active:', active);
-});
-
-// Stop webcam
-webcamService.stopStream();
-```
-
-## Configuration
-
-### Audio Settings
-
-```typescript
-interface AudioConfig {
-  sampleRate: number;      // Default: 16000
-  channels: number;        // Default: 1
-  startThreshold: number;  // Default: 0.24
-  stopThreshold: number;   // Default: 0.15
-  silenceThreshold: number; // Default: 2000ms
-  smoothingTimeConstant: number; // Default: 0.8
-}
-```
-
-### Webcam Settings
-
-```typescript
-interface WebcamConfig {
-  width: number;          // Default: 640
-  height: number;         // Default: 480
-  facingMode: 'user' | 'environment'; // Default: 'user'
-}
-```
 
 ## System design
 
@@ -375,6 +308,430 @@ flowchart TD
     I -->|Failure| J
     J --> K[Cleanup Resources]
     K --> L[Show Error Message]
+```
+
+## Browser API Integration
+
+### Camera Integration
+
+The application uses the WebRTC API to access the user's camera through the `WebcamService`. Here's how it works:
+
+1. **Stream Initialization**:
+
+   ```typescript
+   const stream = await navigator.mediaDevices.getUserMedia({
+     video: {
+       width: { ideal: 640 },
+       height: { ideal: 480 },
+       facingMode: 'user'
+     }
+   });
+   ```
+
+2. **Frame Capture**:
+   - Primary method uses the modern `ImageCapture` API:
+
+     ```typescript
+     const imageCapture = new ImageCapture(videoTrack);
+     const blob = await imageCapture.takePhoto();
+     ```
+
+   - Fallback to Canvas API if `ImageCapture` is not supported:
+
+     ```typescript
+     const canvas = document.createElement('canvas');
+     const ctx = canvas.getContext('2d');
+     ctx.drawImage(videoElement, 0, 0);
+     const dataUrl = canvas.toDataURL('image/png');
+     ```
+
+3. **Resource Management**:
+   - Proper cleanup of video tracks when stopping the stream
+   - Automatic resource release when component is destroyed
+   - Server-side rendering (SSR) safety checks
+
+### Audio Recording and Playback
+
+The application uses the Web Audio API and MediaRecorder API for sophisticated audio handling through the `AudioService`. The service integrates with SignalR for real-time communication and provides reactive state management:
+
+1. **Audio Configuration**:
+
+   ```typescript
+   interface AudioConfig {
+     sampleRate: number;      // Audio sampling rate
+     channels: number;        // Number of audio channels
+     startThreshold: number;  // Volume threshold to start recording
+     stopThreshold: number;   // Lower threshold to maintain recording
+     silenceThreshold: number;  // Time in ms to consider silence
+     smoothingTimeConstant: number; // Smoothing factor for analysis
+   }
+
+   // Default configuration
+   const defaultConfig = {
+     sampleRate: 16000,      // 16kHz for optimal speech
+     channels: 1,            // Mono audio
+     startThreshold: 0.24,   // Start at 24% volume
+     stopThreshold: 0.15,    // Keep recording until 15%
+     silenceThreshold: 2000, // Stop after 2s silence
+     smoothingTimeConstant: 0.8
+   };
+   ```
+
+2. **State Management**:
+
+   ```typescript
+   interface AudioMonitorState {
+     isMonitoring: boolean;    // Audio analysis active
+     isRecording: boolean;     // Currently recording
+     voiceDetected: boolean;   // Voice detected
+     audioLevel: number;       // Current volume (0-1)
+   }
+
+   interface AudioPlaybackState {
+     isPlaying: boolean;
+     duration: number;
+     currentTime: number;
+   }
+
+   // Service provides observables for state
+   audioService.monitorState$: Observable<AudioMonitorState>
+   audioService.playbackState$: Observable<AudioPlaybackState>
+   audioService.isRecording$: Observable<boolean>
+   ```
+
+3. **Audio Stream Setup**:
+
+   ```typescript
+   const constraints: MediaStreamConstraints = {
+     audio: {
+       sampleRate: config.sampleRate,
+       channelCount: config.channels,
+       echoCancellation: true,
+       noiseSuppression: true,
+       autoGainControl: true
+     }
+   };
+   ```
+
+4. **Voice Detection System**:
+   - Uses Web Audio API's `AnalyserNode` for real-time analysis
+   - Calculates RMS (Root Mean Square) for natural volume measurement
+   - Implements dual-threshold approach with hysteresis:
+
+     ```typescript
+     // Calculate RMS value
+     let sum = 0;
+     let nonZeroCount = 0;
+     for (let i = 0; i < bufferLength; i++) {
+       const value = dataArray[i] / 255;
+       if (value > 0) {
+         sum += value * value;
+         nonZeroCount++;
+       }
+     }
+     const normalizedLevel = Math.sqrt(sum / (nonZeroCount || bufferLength));
+     ```
+
+5. **Recording Management**:
+   - Automatic start on voice detection
+   - Smart silence detection for auto-stop
+
+   ```typescript
+   // Start recording when voice detected
+   if (voiceDetected && !currentState.isRecording) {
+     this.startRecordingInternal();
+     lowVolumeFrames = 0;
+   }
+
+   // Stop after sustained silence
+   if (lowVolumeFrames >= framesToWait) {
+     this.stopRecordingInternal();
+   }
+   ```
+
+6. **Audio Playback**:
+   - Supports multiple audio formats
+   - Handles base64 encoded audio data
+   - Provides playback controls and state
+
+   ```typescript
+   async playAudio(base64Audio: string): Promise<void> {
+     const audioBlob = this.base64ToBlob(base64Audio);
+     const audioUrl = URL.createObjectURL(audioBlob);
+     this.currentAudio = new Audio(audioUrl);
+     await this.currentAudio.play();
+   }
+   ```
+
+7. **Integration with Chat**:
+
+   ```typescript
+   // Chat component integration
+   this.audioService.audioRecorded$
+     .pipe(takeUntil(this.destroy$))
+     .subscribe(async audioBlob => {
+       await this.signalRService.sendAudioMessage(audioBlob);
+     });
+
+   // Handle playback in chat
+   async handleAudioPlayback(message: ChatMessage): Promise<void> {
+     if (this.isPlayingAudio(message)) {
+       await this.audioService.stopPlayback();
+     } else {
+       await this.audioService.playAudio(message.audioData!);
+     }
+   }
+   ```
+
+8. **Error Handling**:
+   - Comprehensive error states
+   - Automatic recovery attempts
+   - SSR (Server-Side Rendering) safety checks
+
+   ```typescript
+   if (!this.isBrowser) {
+     return throwError(() => 
+       new Error('Audio capture not available during SSR')
+     );
+   }
+   ```
+
+The system provides:
+
+- Automatic voice-activated recording
+- Real-time audio level monitoring
+- Smooth playback experience
+- Integration with chat interface
+- Proper resource management
+- Error resilience and recovery
+
+### Voice Activity Detection
+
+The application implements real-time voice detection using Web Audio API's `AnalyserNode` to monitor audio input and automatically manage recording. Let's dive into how this sophisticated system works:
+
+#### Audio Analysis Setup
+
+The Web Audio API provides a powerful audio processing pipeline through the `AnalyserNode`. Here's how we set it up:
+
+```typescript
+private setupAudioAnalysis(stream: MediaStream, config: AudioConfig) {
+  // Create audio context and analyzer
+  this.audioContext = new AudioContext();
+  this.analyzer = this.audioContext.createAnalyser();
+  
+  // Configure for optimal voice detection
+  this.analyzer.fftSize = 2048;  // For detailed frequency analysis
+  this.analyzer.smoothingTimeConstant = config.smoothingTimeConstant;
+  
+  // Connect stream to analyzer
+  const source = this.audioContext.createMediaStreamSource(stream);
+  source.connect(this.analyzer);
+
+  // Start monitoring if enabled
+  if (this.monitorState.value.isMonitoring) {
+    requestAnimationFrame(this.checkAudioLevel);
+  }
+}
+```
+
+Why these settings?
+
+- `fftSize = 2048`: This gives us 1024 frequency bins (fftSize/2), providing enough detail to analyze human voice frequencies (typically 85-255 Hz) while maintaining good performance.
+- `smoothingTimeConstant`: Acts like a low-pass filter, smoothing out rapid fluctuations in the audio signal. A value of 0.8 means each new value is weighted at 20%, preventing false triggers from brief spikes.
+
+#### Volume Detection System
+
+We use RMS (Root Mean Square) calculation for volume measurement. But why RMS instead of a simple average?
+
+```typescript
+// Get frequency data from analyzer
+const dataArray = new Uint8Array(bufferLength);
+this.analyzer.getByteFrequencyData(dataArray);
+
+// Calculate RMS with improved accuracy
+let sum = 0;
+let nonZeroCount = 0;
+for (let i = 0; i < bufferLength; i++) {
+  const value = dataArray[i] / 255;
+  if (value > 0) {
+    sum += value * value;
+    nonZeroCount++;
+  }
+}
+const normalizedLevel = Math.sqrt(sum / (nonZeroCount || bufferLength));
+```
+
+Understanding RMS:
+
+1. **Why RMS?** Human perception of sound intensity is logarithmic, not linear. RMS better represents how we perceive loudness because it:
+   - Emphasizes larger values (squaring)
+   - Handles both positive and negative sound waves
+   - Correlates better with perceived volume than simple averaging
+
+2. **Implementation Details:**
+   - We normalize values to 0-1 range (`/ 255`) for consistent thresholds
+   - We count non-zero values to handle silence more accurately
+   - The square root at the end converts back to a linear scale
+
+#### Smart Voice Detection
+
+Our system uses a dual-threshold approach with frame counting for robust voice detection. This sophisticated approach prevents false triggers while maintaining natural conversation flow:
+
+```typescript
+// Handle frame counting for silence detection
+if (currentState.isRecording) {
+  if (!voiceDetected) {
+    lowVolumeFrames++;
+    if (lowVolumeFrames >= framesToWait) {
+      this.stopRecordingInternal();
+      lowVolumeFrames = 0;
+    }
+  } else {
+    lowVolumeFrames = 0;
+  }
+}
+
+// Handle recording state
+if (voiceDetected && !currentState.isRecording) {
+  this.startRecordingInternal();
+}
+```
+
+The Dual-Threshold System Explained:
+
+1. **Start Threshold (0.24 or 24%):**
+   - Higher threshold for starting recording
+   - Prevents false triggers from background noise
+   - Chosen based on typical speech volume patterns
+
+2. **Stop Threshold (0.15 or 15%):**
+   - Lower threshold for maintaining recording
+   - Allows natural pauses in speech
+   - Prevents cutting off quiet syllables
+
+3. **Frame-Based Silence Detection:**
+   - Counts frames below stop threshold
+   - 2-second timeout = 120 frames at 60fps
+   - Why 2 seconds? Studies show it's a natural pause length in conversation
+   - Resets counter when voice is detected again
+
+This creates a "hysteresis" effect:
+
+```graph
+Volume
+    ^
+    |    Start Recording
+0.24|   ┌───────────────────────────────┐
+    |   │     Keep Recording            │
+0.15|   │                               │
+    |   │                               └─────
+    └───┘                               Stop recording
+     Time
+```
+
+#### State Management and Monitoring
+
+The service provides reactive state observables for real-time monitoring:
+
+```typescript
+interface AudioMonitorState {
+  isMonitoring: boolean;    // Audio analysis active
+  isRecording: boolean;     // Currently recording
+  voiceDetected: boolean;   // Voice detected
+  audioLevel: number;       // Current volume (0-1)
+}
+
+// Components can subscribe to state changes
+audioService.monitorState$.subscribe(state => {
+  updateUI(state);
+});
+
+// Monitor state changes trigger UI updates
+private monitorState = new BehaviorSubject<AudioMonitorState>({
+  isMonitoring: false,
+  isRecording: false,
+  voiceDetected: false,
+  audioLevel: 0
+});
+```
+
+#### Integration with Chat
+
+The chat component handles audio recording and playback:
+
+```typescript
+export class ChatComponent {
+  constructor(
+    private audioService: AudioService,
+    private signalRService: SignalRService
+  ) {
+    // Handle completed recordings
+    this.audioService.audioRecorded$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(async audioBlob => {
+        try {
+          // Send audio through SignalR
+          await this.signalRService.sendAudioMessage(audioBlob);
+        } catch (error) {
+          console.error('Error sending audio:', error);
+        }
+      });
+
+    // Handle audio playback state
+    this.audioService.playbackState$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(state => {
+        this.isAudioPlaying = state.isPlaying;
+        this.cdr.markForCheck();
+      });
+  }
+
+  // Handle message playback
+  async handleAudioPlayback(message: ChatMessage): Promise<void> {
+    if (this.isPlayingAudio(message)) {
+      await this.audioService.stopPlayback();
+    } else {
+      await this.audioService.playAudio(message.audioData!);
+    }
+  }
+}
+```
+
+#### Resource Management
+
+The service implements comprehensive resource cleanup:
+
+```typescript
+private cleanupAudioResources(): void {
+  // Stop monitoring
+  this.monitorState.next({
+    isMonitoring: false,
+    isRecording: false,
+    voiceDetected: false,
+    audioLevel: 0
+  });
+
+  // Clean up analyzer
+  if (this.analyzer) {
+    this.analyzer.disconnect();
+    this.analyzer = null;
+  }
+
+  // Close audio context
+  if (this.audioContext?.state !== 'closed') {
+    this.audioContext.close();
+  }
+  this.audioContext = null;
+
+  // Stop recording
+  if (this.mediaRecorder?.state === 'recording') {
+    this.mediaRecorder.stop();
+  }
+  this.mediaRecorder = null;
+
+  this.audioChunks = [];
+  this.checkAudioLevel = null;
+}
 ```
 
 ## Browser Support
