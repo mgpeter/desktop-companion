@@ -1,6 +1,7 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable, NgZone, PLATFORM_ID, inject } from '@angular/core';
 import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
+import { isPlatformBrowser } from '@angular/common';
 
 // Add ImageCapture type definition
 declare class ImageCapture {
@@ -18,6 +19,7 @@ export interface WebcamConfig {
   providedIn: 'root'
 })
 export class WebcamService {
+  private readonly isBrowser: boolean;
   private stream = new BehaviorSubject<MediaStream | null>(null);
   private defaultConfig: WebcamConfig = {
     width: 640,
@@ -25,7 +27,9 @@ export class WebcamService {
     facingMode: 'user'
   };
 
-  constructor(private ngZone: NgZone) {}
+  constructor(private ngZone: NgZone) {
+    this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  }
 
   get stream$(): Observable<MediaStream | null> {
     return this.stream.asObservable();
@@ -38,6 +42,10 @@ export class WebcamService {
   }
 
   startStream(config: Partial<WebcamConfig> = {}): Observable<MediaStream> {
+    if (!this.isBrowser) {
+      return throwError(() => new Error('Webcam capture is not available during server-side rendering'));
+    }
+
     const finalConfig = { ...this.defaultConfig, ...config };
     
     const constraints: MediaStreamConstraints = {
@@ -63,6 +71,7 @@ export class WebcamService {
   }
 
   stopStream(): void {
+    if (!this.isBrowser) return;
     const currentStream = this.stream.value;
     if (currentStream) {
       // Only stop video tracks, not all tracks
@@ -83,6 +92,7 @@ export class WebcamService {
    * @returns Promise<string | null> A promise that resolves to the base64 encoded PNG image, or null if capture fails
    */
   async captureFrame(): Promise<string | null> {
+    if (!this.isBrowser) return null;
     const stream = this.stream.value;
     if (!stream || !stream.active) {
       console.log('No active stream to capture frame from');
@@ -122,6 +132,7 @@ export class WebcamService {
    * Fallback method to capture frame using canvas when ImageCapture is not supported
    */
   private async captureFrameUsingCanvas(stream: MediaStream): Promise<string | null> {
+    if (!this.isBrowser) return null;
     try {
       // Create a video element
       const video = document.createElement('video');

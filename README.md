@@ -43,6 +43,8 @@ A modern Angular-based desktop companion application featuring voice-activated r
 ### Running the application
 
 ```bash
+npm install -g @tailwindcss/cli
+
 dotnet user-secrets init
 
 dotnet user-secrets set "OpenAI:ApiKey" "your-api-key-here"

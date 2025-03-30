@@ -1,6 +1,7 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable, NgZone, PLATFORM_ID, inject } from '@angular/core';
 import { BehaviorSubject, Observable, from, throwError, Subject } from 'rxjs';
 import { catchError, tap, map, debounceTime } from 'rxjs/operators';
+import { isPlatformBrowser } from '@angular/common';
 
 export interface AudioConfig {
   sampleRate: number;
@@ -28,6 +29,7 @@ export interface AudioMonitorState {
   providedIn: 'root'
 })
 export class AudioService {
+  private readonly isBrowser: boolean;
   private stream = new BehaviorSubject<MediaStream | null>(null);
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
@@ -57,7 +59,9 @@ export class AudioService {
     smoothingTimeConstant: 0.8
   };
 
-  constructor(private ngZone: NgZone) {}
+  constructor(private ngZone: NgZone) {
+    this.isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  }
 
   get stream$(): Observable<MediaStream | null> {
     return this.stream.asObservable();
@@ -76,6 +80,10 @@ export class AudioService {
   }
 
   startStream(config: Partial<AudioConfig> = {}): Observable<MediaStream> {
+    if (!this.isBrowser) {
+      return throwError(() => new Error('Audio capture is not available during server-side rendering'));
+    }
+
     const finalConfig = { ...this.defaultConfig, ...config };
     
     console.log('Starting audio stream with config:', {
@@ -140,6 +148,7 @@ export class AudioService {
   }
 
   private setupMediaRecorder(stream: MediaStream): void {
+    if (!this.isBrowser) return;
     // Check for supported MIME types
     const mimeType = [
       'audio/webm',
@@ -189,6 +198,7 @@ export class AudioService {
   }
 
   private setupAudioAnalysis(stream: MediaStream, config: AudioConfig) {
+    if (!this.isBrowser) return;
     try {
       console.log('Setting up audio analysis with config:', {
         startThreshold: config.startThreshold,
@@ -359,6 +369,7 @@ export class AudioService {
   private checkAudioLevel: (() => void) | null = null;
 
   startMonitoring(): void {
+    if (!this.isBrowser) return;
     console.log('Starting voice monitoring');
     
     // Enhanced stream validation
@@ -497,6 +508,7 @@ export class AudioService {
   }
 
   stopMonitoring(): void {
+    if (!this.isBrowser) return;
     console.log('Stopping voice monitoring');
     
     // Clear any pending timeouts
@@ -613,6 +625,7 @@ export class AudioService {
   }
 
   stopStream(): void {
+    if (!this.isBrowser) return;
     console.log('Stopping audio stream');
     const currentStream = this.stream.value;
     if (currentStream) {
@@ -634,6 +647,7 @@ export class AudioService {
   }
 
   async playAudio(base64Audio: string): Promise<void> {
+    if (!this.isBrowser) return;
     try {
       console.group('Audio Playback');
       console.log('Starting audio playback process');
@@ -724,6 +738,7 @@ export class AudioService {
   }
 
   async stopPlayback(): Promise<void> {
+    if (!this.isBrowser) return;
     if (this.currentAudio) {
       try {
         console.log('Stopping audio playback', {
