@@ -1,67 +1,96 @@
-# Desktop Companion Application
+# ServoSkull 🤖
 
-A modern Angular-based desktop companion application featuring voice-activated recording and webcam capabilities.
+**An AI-Powered Multimodal Desktop Companion**
 
-## Features
+*Showcasing the future of human-AI interaction through voice, vision, and intelligent conversation*
 
-### Voice-Activated Audio Recording
+---
 
-- Automatic voice detection and recording
-- Smart silence detection for auto-stopping
-- Configurable audio thresholds:
-  - Start threshold: 0.24 (24% volume)
-  - Stop threshold: 0.15 (15% volume)
-  - Silence timeout: 2000ms (2 seconds)
-- Real-time audio level monitoring
-- Support for multiple audio formats (webm, mp4, ogg, wav)
-- Error handling for various microphone states
+**ServoSkull** is a cutting-edge AI desktop companion that demonstrates the potential of multimodal AI agents. Built by **Usual Expat Limited**, this project explores advanced AI interaction capabilities through seamless integration of voice recognition, computer vision, and natural language processing.
 
-### Webcam Integration
+> 🚀 **Future Vision**: ServoSkull is designed with robotics integration in mind - imagine an AI that can see, hear, speak, and eventually control servo motors to move and interact with the physical world based on conversation and visual input.
 
-- Live webcam preview
-- Independent webcam stream management
-- Support for different camera resolutions
-- Proper resource cleanup and state management
+## ✨ Key Features
 
-### Technical Features
+### 🎤 Voice-Activated AI Interaction
+- **Smart Voice Detection**: Advanced silence detection with configurable thresholds
+- **Real-time Processing**: Instant voice-to-text using OpenAI Whisper
+- **Natural Conversations**: Context-aware responses with conversation history
+- **Text-to-Speech**: High-quality AI voice responses
 
-- Reactive state management using RxJS
-- Independent audio and video stream handling
-- Cleanup of media resources
-- Comprehensive error handling and logging
-- TypeScript type safety throughout
+### 👁️ Computer Vision Integration  
+- **Live Camera Feed**: Real-time webcam integration with frame capture
+- **Visual Context**: AI analyzes images sent with each message
+- **Multi-resolution Support**: Adaptive camera resolution handling
+- **Privacy-First**: Local processing with secure cleanup
 
-## Setup
+### 🧠 Advanced AI Capabilities
+- **Multimodal Processing**: Combines text, audio, and visual inputs
+- **OpenAI Integration**: GPT models, Whisper transcription, and TTS
+- **Session Management**: Persistent conversation context
+- **Real-time Communication**: SignalR-based instant messaging
+
+### ⚡ Modern Architecture
+- **Microservices**: .NET Aspire orchestration for scalability
+- **Reactive Frontend**: Angular 19 with RxJS state management  
+- **Production Ready**: Docker containerization and monitoring
+- **Developer Experience**: Hot reload, comprehensive logging, and debugging tools
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js (v22 or higher)
-- Angular CLI (v19)
-- Tailwind CSS v4
-- Modern browser with WebRTC support
+- **.NET 9.0 SDK** (for Aspire and backend services)
+- **Node.js v22+** (for Angular frontend)
+- **Modern Browser** with WebRTC support (Chrome/Edge recommended)
+- **OpenAI API Key** (for AI functionality)
 
-### Running the application
+### System Requirements
 
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| RAM | 8GB | 16GB+ |
+| CPU | 4 cores | 8 cores+ |
+| Storage | 2GB | 5GB+ |
+| Browser | Chrome 90+ | Chrome/Edge Latest |
+
+### Installation & Setup
+
+**1. Clone and Navigate**
 ```bash
-npm install -g @tailwindcss/cli
+git clone <repository-url>
+cd desktop-companion
+```
 
-
-cd [repository-name]
-
+**2. Configure OpenAI API**
+```bash
 cd ServoSkull.ApiService
-
 dotnet user-secrets init
-
 dotnet user-secrets set "OpenAI:ApiKey" "<your-api-key-here>"
+cd ..
+```
 
-cd ../ServoSkull.Angular
-
+**3. Install Dependencies**
+```bash
+# Install Angular dependencies
+cd ServoSkull.Angular
 npm install
-
 cd ..
 
+# Install Tailwind CLI globally (optional)
+npm install -g @tailwindcss/cli
+```
+
+**4. Start the Application**
+```bash
+# Start all services with Aspire orchestration
 dotnet run --project ServoSkull.AppHost
 ```
+
+**5. Access the Application**
+- **Aspire Dashboard**: `http://localhost:18888` (service monitoring)
+- **Angular App**: `http://localhost:4200` (main interface)
+- **API Service**: `http://localhost:5000` (backend API)
 
 ## .NET Aspire Integration
 
@@ -746,10 +775,28 @@ private cleanupAudioResources(): void {
 - Webcam access requires HTTPS in production
 - Some browsers may have limited codec support
 
-## Contributing
+## 📚 Documentation
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to our repository.
+Comprehensive documentation is available in the `docs/` directory:
 
-## License
+- **[Product Overview](docs/PRODUCT_OVERVIEW.md)** - Executive summary and value proposition
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical deep-dive and system design
+- **[Demo Guide](docs/DEMO_GUIDE.md)** - Interactive demonstration flows
+- **[Development Guide](docs/DEVELOPMENT.md)** - Complete developer setup and contribution guide
+
+## 🤝 Contributing
+
+Contributions are welcome! This project follows clean architecture principles and modern development practices. Please see the [Development Guide](docs/DEVELOPMENT.md) for:
+
+- Development environment setup
+- Code architecture patterns  
+- Testing strategies
+- Pull request process
+
+## 🏢 About
+
+**ServoSkull** is developed by **Usual Expat Limited** as a demonstration platform for advanced AI interaction capabilities. This project showcases the potential of multimodal AI agents and serves as a foundation for future robotics integration.
+
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
