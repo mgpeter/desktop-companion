@@ -1,0 +1,14 @@
+{
+  "$schema": "https://aka.ms/azure/static-web-apps-cli/schema",
+  "configurations": {
+    "servo-skull.angular": {
+      "appLocation": ".",
+      "outputLocation": "dist\\servo-skull.angular",
+      "appBuildCommand": "npm run build",
+      "run": "npm start",
+      "appDevserverUrl": "http://localhost:4200",
+      "appName": "servo-skull-angular-dev",
+      "resourceGroup": "servo-skull-angular-dev-rg"
+    }
+  }
+}

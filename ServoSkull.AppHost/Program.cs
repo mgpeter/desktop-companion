@@ -5,8 +5,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 var apiService = builder.AddProject<Projects.ServoSkull_ApiService>("apiservice")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName);
 
+<<<<<<< Updated upstream
 // Configure ASP.NET Core Web project
 var webApp = builder.AddProject<Projects.ServoSkull_Web>("webapp")
+=======
+// Configure Angular frontend
+var angularApp = builder.AddNpmApp("angular", "../ServoSkull.Angular", scriptName: "start:aspire")
+>>>>>>> Stashed changes
     .WithReference(apiService)
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName);
 
