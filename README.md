@@ -79,6 +79,10 @@ cd ..
 
 # Install Tailwind CLI globally (optional)
 npm install -g @tailwindcss/cli
+
+cd ServoSkull.Web
+npm install
+cd ..
 ```
 
 **4. Start the Application**

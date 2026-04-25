@@ -3,13 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-<<<<<<< Updated upstream
-    "start": "ng serve --port %PORT%",
-    "start:devcontainer": "ng serve --port 4200",
-=======
     "start": "ng serve",
+    "start:devcontainer": "ng serve --port 4200",
     "start:aspire": "ng serve --port %PORT%",
->>>>>>> Stashed changes
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
